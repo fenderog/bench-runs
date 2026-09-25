@@ -282,6 +282,12 @@ main { max-width: var(--maxw); margin: 0 auto; padding: var(--pad); }
   border-bottom: 1px solid var(--border);
 }
 .card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.card-thumb-stack { position: absolute; inset: 0; }
+.card-thumb-stack .card-thumb-fallback { position: absolute; inset: 0; }
+.card-thumb-stack iframe {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  border: 0; pointer-events: none; overflow: hidden; background: transparent;
+}
 .card-thumb-fallback {
   width: 100%; height: 100%;
   display: grid; place-items: center;
@@ -307,12 +313,6 @@ main { max-width: var(--maxw); margin: 0 auto; padding: var(--pad); }
 }
 .badge-media { display: inline-flex; gap: 6px; }
 .badge-new { background: var(--accent); border-color: transparent; color: var(--accent-ink); }
-.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
-.status-complete .status-dot { background: var(--ok); }
-.status-running .status-dot { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
-.status-failed .status-dot { background: var(--err); }
-.status-partial .status-dot { background: var(--warn); }
 
 .card-body { display: flex; flex-direction: column; gap: 10px; padding: 15px 16px 16px; flex: 1; }
 .card-title { font-size: 15.5px; font-weight: 620; letter-spacing: -.012em; }

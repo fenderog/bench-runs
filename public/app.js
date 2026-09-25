@@ -115,8 +115,6 @@ const initials = (text) => {
   return (words[0][0] + (words[1]?.[0] ?? '')).toUpperCase();
 };
 
-const statusClass = (status) => `status status-${['complete', 'running', 'failed', 'partial'].includes(status) ? status : 'complete'}`;
-
 /** Append a cache-busting version so re-uploaded assets at the same path refresh. */
 function bust(src, version) {
   if (!src || !version) return src;
@@ -353,7 +351,7 @@ const state = {
   runs: [],
   filtered: [],
   query: '',
-  filters: { benchmark: new Set(), model: new Set(), tag: new Set(), status: new Set() },
+  filters: { benchmark: new Set(), model: new Set(), tag: new Set() },
   sort: LS.get('bench.sort', 'date-desc'),
   seen: new Set(LS.get('bench.seen', [])),
   newIds: new Set(),
@@ -465,7 +463,7 @@ function startPolling() {
 
 /* ── filtering ────────────────────────────────────────────────────────────── */
 const searchable = (run) => [
-  run.id, run.title, run.model, run.benchmark, run.status, run.summary,
+  run.id, run.title, run.model, run.benchmark, run.summary,
   ...(run.tags ?? []),
   ...Object.values(run.environment ?? {}),
   run.notes ?? '',
@@ -473,12 +471,11 @@ const searchable = (run) => [
 
 function applyFilters() {
   const tokens = state.query.toLowerCase().split(/\s+/).filter(Boolean);
-  const { benchmark, model, tag, status } = state.filters;
+  const { benchmark, model, tag } = state.filters;
 
   state.filtered = state.runs.filter((run) => {
     if (benchmark.size && !benchmark.has(run.benchmark)) return false;
     if (model.size && !model.has(run.model)) return false;
-    if (status.size && !status.has(run.status)) return false;
     if (tag.size && !(run.tags ?? []).some((t) => tag.has(t))) return false;
     if (tokens.length) {
       const haystack = searchable(run);
@@ -526,7 +523,6 @@ function renderChips() {
     { key: 'benchmark', label: 'bench' },
     { key: 'model', label: 'model', mono: true },
     { key: 'tag', label: 'tag' },
-    { key: 'status', label: 'status' },
   ];
 
   for (const group of groups) {
@@ -576,10 +572,30 @@ function cardThumb(run) {
       onerror: (event) => { event.currentTarget.replaceWith(fallbackThumb(run)); },
     });
   }
-  return fallbackThumb(run);
+  return htmlThumb(run) ?? fallbackThumb(run);
 }
 
 const fallbackThumb = (run) => h('div', { class: 'card-thumb-fallback' }, h('span', { text: initials(run.model || run.benchmark || run.title) }));
+
+/* A run whose output is HTML gets a live preview as its thumbnail: a fully
+   sandboxed (no scripts), non-interactive iframe layered over the fallback,
+   so a failed load still shows the initials. Local files only. */
+function htmlThumb(run) {
+  const item = (run.media ?? []).find((m) =>
+    m.type === 'playable' && !m.missing && !m.remote &&
+    typeof m.src === 'string' &&
+    !/^(https?:)?\/\//i.test(m.src) && !m.src.startsWith('data:') &&
+    m.src.toLowerCase().split('?')[0].endsWith('.html'));
+  if (!item) return null;
+  return h('div', { class: 'card-thumb-stack' },
+    fallbackThumb(run),
+    h('iframe', {
+      src: bust(item.src, run._meta?.version), title: '', tabindex: '-1',
+      'aria-hidden': 'true', loading: 'lazy', scrolling: 'no', sandbox: '',
+      onload: (event) => { event.currentTarget.previousSibling?.remove(); },
+    }),
+  );
+}
 
 function renderCard(run) {
   const version = run._meta?.version;
@@ -595,9 +611,6 @@ function renderCard(run) {
       cardThumb(run),
       h('div', { class: 'card-overlays' },
         state.newIds.has(run.id) ? h('span', { class: 'badge badge-new', text: 'NEW' }) : null,
-        run.status && run.status !== 'complete'
-          ? h('span', { class: 'badge', text: run.status })
-          : null,
       ),
     ),
     h('div', { class: 'card-body' },
@@ -940,8 +953,6 @@ function renderDetail(run) {
   const body = h('div', { class: 'detail-body' },
     h('h2', { class: 'detail-title', text: run.title }),
     h('div', { class: 'detail-sub' },
-      h('span', { class: statusClass(run.status) }, h('span', { class: 'status-dot' }), h('span', { text: run.status })),
-      h('span', { text: '·' }),
       h('span', { text: fmtDate(run.date) }),
       run.benchmark ? h('span', { text: '·' }) : null,
       run.benchmark ? h('span', { text: run.benchmark }) : null,
