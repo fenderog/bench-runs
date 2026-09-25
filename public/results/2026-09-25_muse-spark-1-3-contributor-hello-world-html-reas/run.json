@@ -8,7 +8,8 @@
   "summary": "muse-spark-1.3-contributor via pi 0.87.1 generated a single-file hello-world HTML site. The file write is evidenced in-transcript; the capture was taken mid-run so status stays running.",
   "tags": [
     "html",
-    "hello-world"
+    "hello-world",
+    "muse-spark-1.3-contributor"
   ],
   "metrics": {
     "success": {
