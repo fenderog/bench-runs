@@ -1,8 +1,213 @@
 {
   "schema": 1,
-  "generatedAt": "2026-09-25T23:02:51.105Z",
-  "count": 2,
+  "generatedAt": "2026-09-25T23:24:39.959Z",
+  "count": 3,
   "runs": [
+    {
+      "id": "2026-09-25_three-js-voxel-house-demo",
+      "title": "Three.js voxel house demo",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "benchmark": "voxel-house-threejs",
+      "date": "2026-09-25T23:01:44.899Z",
+      "status": "complete",
+      "tags": [
+        "voxel-house",
+        "deepseek-v4.1-flash",
+        "threejs"
+      ],
+      "summary": "deepseek-v4.1-flash (pi 0.87.1, reasoning=high) generated a self-contained three.js voxel house: a procedural 2,215-voxel scene of a timber-framed cottage with a stepped gable roof, brick chimney, glazed windows, path, fence, trees and pond, plus orbit controls and a day/night lighting toggle. The inline script passed node --check and the page rendered in headless Chrome with zero JS exceptions; manual task completion was 1/1.",
+      "metrics": [
+        {
+          "label": "turns",
+          "value": 28,
+          "unit": "",
+          "better": null,
+          "hint": "assistant messages"
+        },
+        {
+          "label": "reasoning_blocks",
+          "value": 45,
+          "unit": "",
+          "better": null,
+          "hint": "captured verbatim"
+        },
+        {
+          "label": "tool_calls",
+          "value": 63,
+          "unit": "",
+          "better": null,
+          "hint": ""
+        },
+        {
+          "label": "tool_errors",
+          "value": 4,
+          "unit": "",
+          "better": null,
+          "hint": "failed tool calls"
+        },
+        {
+          "label": "duration",
+          "value": 1335.1,
+          "unit": "s",
+          "better": null,
+          "hint": ""
+        },
+        {
+          "label": "task_completion",
+          "value": 1,
+          "unit": "%",
+          "better": null,
+          "hint": "1/1 manual acceptance: one standalone HTML file builds a voxel house in three.js and renders it in headless Chrome"
+        },
+        {
+          "label": "render_check",
+          "value": 1,
+          "unit": "%",
+          "better": null,
+          "hint": "headless Chrome load: 0 JS exceptions, 0 console errors, canvas 1400x880"
+        },
+        {
+          "label": "js_syntax_check",
+          "value": 1,
+          "unit": "%",
+          "better": null,
+          "hint": "node --check on the inline scene script extracted from index.html passed"
+        },
+        {
+          "label": "voxels_rendered",
+          "value": 2215,
+          "unit": "",
+          "better": null,
+          "hint": "instanced cubes in the final scene (window.__voxelHouse.voxels)"
+        },
+        {
+          "label": "offline_dependency_free",
+          "value": 1,
+          "unit": "%",
+          "better": null,
+          "hint": "three.js r128 vendored beside index.html; no network required at view time"
+        },
+        {
+          "label": "artefact_bytes",
+          "value": 617983,
+          "unit": "",
+          "better": null,
+          "hint": "index.html 14,538 B + vendored three.min.js 603,445 B"
+        }
+      ],
+      "charts": [],
+      "environment": {
+        "harness": "pi 0.87.1",
+        "harness_version": "0.87.1",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "model_provider": "openrouter",
+        "reasoning_mode": "high",
+        "reasoning_visible": "yes, all 45 block(s) captured verbatim",
+        "reasoning_effort": "high",
+        "reasoning_budget_tokens": null,
+        "decoding": null,
+        "max_steps": null,
+        "tools": "read, bash, edit, write, addon_log, grep, find, ls, powershell, mcpScript, mcp, web_search, source_check, fetch_content, get_search_content, ask_user_question",
+        "working_directory": "/Users/fender",
+        "transcript_format": "pi",
+        "source_log": "2026-09-25T23-01-24-051Z_01a0dacd-51d2-74c0-b788-3db806b3bef8.jsonl",
+        "sandbox": "local shell, no container; headless Chrome 154.0.8037.58 via DevTools Protocol (SwiftShader) for the render check",
+        "hardware": "Apple M4, 16 GB RAM, macOS 27.0",
+        "model_switches_before_prompt": "muse-spark-1.3-contributor → gpt-6-astra → gpt-6-sol → deepseek/deepseek-v4.1-flash; no assistant message was produced under the first three",
+        "artefact": "media/playable/index.html (14,538 B, sha256 d32053c6…) + vendored three.js r128 UMD media/playable/three.min.js (603,445 B, sha256 9274bbce…); no network at view time",
+        "verification": "node --check on the extracted inline script: pass; CDP render check: 0 exceptions, 0 console errors, 2215 voxels; two screenshots inspected",
+        "usage_note": "the installed capture adapter does not normalise pi's usage key names, so run.end.usage is null; the sums below are from the original per-message fields",
+        "usage_from_source": {
+          "input_tokens": 119646,
+          "output_tokens": 34794,
+          "cache_read_input_tokens": 1645440,
+          "reasoning_tokens": 16418,
+          "total_tokens_reported": 1799880
+        }
+      },
+      "links": [
+        {
+          "label": "three.js r128 (the vendored build, UMD)",
+          "href": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+        }
+      ],
+      "notes": "# Capture and grading notes\n\n## Task and prompt\n\n- **Benchmark instruction:** `generate a voxel house in 3js`.\n- The first user message actually sent to the model contains the full\n  `fe-capture-benchmark-run` skill invocation followed by that instruction, because\n  this run was asked to archive itself. `prompt.md` preserves the **whole** first\n  message byte for byte; the graded instruction is its final line. The skill text is\n  harness-injected context, not part of the benchmark's task definition.\n- This is therefore **not** a prompt-only, single-turn evaluation: the model was also\n  acting as the capture operator, and the transcript contains that work (locating the\n  repo, inspecting the capture scripts, rendering checks).\n\n## Coverage boundary\n\nPi appends every turn to one continuously growing session file. `media/raw/` is the\n**first N original lines of `2026-09-25T23-01-24-051Z_01a0dacd-51d2-74c0-b788-3db806b3bef8.jsonl`,\ncopied byte-for-byte**, ending with the assistant message that completed the artefact\nand produced this archive. It is an unmodified *prefix*, not the final session file —\nthe session continues afterwards with the publish step and the closing report, which\nare operator actions rather than task work. The SHA-256 and byte length of the copied\nprefix are recorded in `transcript.jsonl` under `run.start.source.sha256` / `.bytes`\n(an exact line count is deliberately not printed here, because the live session file\nkeeps growing while this note is written). The canonical transcript was not edited\nafter capture.\n\n## Model and reasoning\n\n- **Model:** `deepseek/deepseek-v4.1-flash` via `openrouter`, reasoning level `high`\n  (`thinking_level_change` record). All 43 assistant records in the log carry this\n  model id.\n- **Pre-prompt model switches:** the session header records four `model_change`\n  events before the task prompt (`muse-spark-1.3-contributor` → `gpt-6-astra` →\n  `gpt-6-sol` → `deepseek/deepseek-v4.1-flash`). No assistant message was produced\n  under the earlier three, so they do not affect the result; the transcript retains\n  them as raw records.\n- **Reasoning visibility:** all thinking blocks are disclosed as plain text; none were\n  encrypted by the provider. No reasoning text was reconstructed or paraphrased.\n\n## What was built\n\n- **Artefact:** `media/playable/index.html` (14,538 B), a standalone page that builds\n  the house procedurally in three.js. SHA-256\n  `d32053c66f3771bc155ff8ccdc915a0009950695dd35527f99c064432bdc9aa3`.\n- **Dependency:** three.js **r128** UMD, vendored as `media/playable/three.min.js`\n  (603,445 B, SHA-256 `9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2`),\n  fetched once from cdnjs and served from the run folder. Nothing is loaded from the\n  network when the playable is viewed, so the artefact stays auditable offline.\n- **Scene:** a sparse voxel store (`Map` keyed by `x,y,z`, last write wins) emits\n  **2,215** cubes into three `InstancedMesh` passes — opaque, translucent glass, and\n  translucent smoke — with `instanceColor` per cube. Contents: 13-voxel-radius lawn,\n  timber-framed house with hollow interior, five-course stepped gable roof, brick\n  chimney with cap and drifting smoke, door with knob, six glazed windows, flagstone\n  path, picket fence with gateway, four trees, flowers, and a small pond.\n- **Interaction:** hand-rolled orbit controls (pointer drag, wheel zoom, clamped polar\n  angle) written into the page rather than vendoring `OrbitControls.js`, keeping the\n  artefact to two files. Day/night toggle (repaints sky, fog, sun, hemisphere light and\n  lights a point lamp inside the front window), auto-spin, and reset-view buttons.\n  A `?time=night` query parameter deep-links the night state.\n\n## Verification performed\n\n- `node --check` on the extracted inline scene script: passed.\n- Headless Chrome (154.0.8037.58) load via the DevTools Protocol: **0 JS exceptions and\n  0 console errors**, canvas present at 1400×880, `window.__voxelHouse.voxels === 2215`.\n- `media/screenshot.png` (day) and `media/screenshot-night.png` (night) are unedited\n  captures from that renderer; both were inspected visually.\n\n## Interventions and caveats\n\n- **One operator interruption.** After the first headless-Chrome screenshot attempts,\n  the run stalled: this machine's Chrome does not exit under `--headless=new\n  --screenshot` because GoogleUpdater/crashpad helper processes keep it alive, and the\n  scene's perpetual `requestAnimationFrame` loop can prevent `--virtual-time-budget`\n  from ever expiring. The operator interrupted the turn (`stopReason: aborted`) and\n  asked why it kept stalling. The fix — driving Chrome over the DevTools Protocol and\n  killing it after capture — was then written and used for both screenshots. This is\n  recorded because it is visible in the transcript as a failed/aborted step, and the\n  successful screenshots came from the second method, not the first.\n- Two `ask_user_question` calls failed validation (an over-long question header, then\n  an over-long option label) before a valid one was accepted; these are the three\n  `tool.result` records with `isError` (the third being a command timeout).\n- The run therefore includes real tool failures. That is left in place: a run whose\n  tools failed is a more useful record than a tidied one.\n\n## Usage caveat\n\nThe source pi log reports token usage on every assistant record using pi's own keys\n(`input`, `output`, `cacheRead`, `cacheWrite`, `reasoning`, `totalTokens`). The\ninstalled capture adapter does not normalise those key names, so `run.end.usage` is\nnull; the figures in `run.json.environment.usage_from_source` are the sums of those\noriginal per-message fields, not estimates. Sampling/decoding parameters\n(temperature, top_p, max_tokens), the step limit, and any seed were not reported by\nthe harness, so those environment fields are absent rather than guessed.\n\n## Discrepancy: a pre-existing, unauditable run.json was superseded\n\n- When this run's capture began, the folder already contained a `run.json` written by\n  someone other than this capture: `status: complete`, tags\n  `voxel, threejs, 3d, deepseek`, a summary, and a `metrics` **array** in the shape\n  `build-manifest.mjs` emits. It is preserved byte-for-byte as\n  `media/raw/superseded-run.json` (2,535 B, SHA-256\n  `53d6d635ff3e8bf7ff8a62aa5a57cef17e83250f02b40013086fe99d1c622957`) so the\n  discrepancy stays auditable; nothing here was deleted quietly.\n- **It contained no audit trail at all** — no `transcript.jsonl`, no `prompt.md`, no\n  `transcript.md`, no `media/raw/` source log. Every claim in it was therefore\n  unverifiable from the folder alone, which is the one thing this capture format\n  exists to prevent.\n- **Two of its metrics are not supported by any evidence and were not carried\n  forward:**\n  - `fps: 60` with the hint \"steady 60 FPS animation loop\". The artefact contains no\n    FPS counter or frame timing of any kind (`grep -ciE 'fps|performance.now|frameCount'`\n    over `index.html` returns 0), and no measurement was taken in this session. The\n    real render check ran under SwiftShader software rasterisation in headless Chrome,\n    whose frame rate is not representative of the 60 Hz display loop anyway.\n  - `duration: 142.4s` with the hint \"generation and compilation time\". No timer was\n    ever started or stopped, and 142.4 s matches no span in the source log, whose\n    first and last timestamps are used instead for the `duration` metric below.\n  - Its `environment.model_provider: \"deepseek\"` is also wrong: the session log\n    records the provider as `openrouter` (model `deepseek/deepseek-v4.1-flash`).\n- The superseding record keeps the operator-chosen title, the verified\n  metrics, the real provider, and the full transcript. Where it disagrees with the\n  superseded file, the captured evidence wins and this note is the explanation.\n\n## Privacy\n\nBefore publication the raw log and transcript were checked for API keys,\nauthorisation headers and private-key blocks; `verify-run.mjs` reports no credential\nleak. The prompt, raw log and transcript necessarily contain absolute `/Users/fender/`\npaths from file operations and the skill invocation. They are retained as provenance\nrather than anonymised, because the capture is meant to be auditable against the\nmachine that produced it.",
+      "media": [
+        {
+          "type": "markdown",
+          "src": "results/2026-09-25_three-js-voxel-house-demo/prompt.md",
+          "caption": "Original prompt (verbatim)",
+          "text": "<skill name=\"fe-capture-benchmark-run\" location=\"/Users/fender/.pi/agent/skills/fe-capture-benchmark-run/SKILL.md\">\nReferences are relative to /Users/fender/.pi/agent/skills/fe-capture-benchmark-run.\n\n# Capture a benchmark run from any harness\n\nTurn one agent/LLM run into a result that a stranger can audit six months from now:\nwhat was asked, what the model thought, what it did, what came out, and on what\nstack. The artefact is a folder in a bench-runs repo:\n\n```\npublic/results/<run-id>/\n├── run.json          ← what the website renders\n├── transcript.jsonl  ← canonical, machine-readable, lossless timeline\n├── transcript.md     ← human-readable rendering (prompt + reasoning + tools + output)\n├── prompt.md         ← the original task prompt, verbatim and alone\n├── notes.md          ← optional prose: method, caveats\n└── media/\n    ├── raw/          ← the untouched source session/API log\n    └── …             ← screenshots, video, .wasm playables, extra logs\n```\n\nThe point is **evidence, not summary**. Anyone must be able to verify the claim\n\"model X with reasoning mode Y scored Z\" from the artefacts you ship.\n\n## Non-negotiables\n\n1. **Verbatim or not at all.** Copy prompt, reasoning, tool I/O and output\n   character-for-character. Never paraphrase, tidy, translate, re-wrap, or\n   \"summarise for brevity\". If you must shorten, truncate explicitly with\n   `truncated: true` and record `original_bytes`, and keep the full version in\n   `media/raw/`.\n2. **Never invent.** No reconstructed reasoning, no guessed token counts, no\n   plausible-looking latency. Omit an unknown field; do not fill it in.\n3. **Reasoning that the harness will not disclose is still data.** Many stacks\n   return encrypted or redacted reasoning (e.g. an empty `thinking` string next\n   to a `signature`, or Codex's `encrypted_content`). Emit an\n   `assistant.thinking` event with `encrypted: true`, keep the ciphertext in\n   `media/raw/`, and set `reasoning.visible: false` in `run.start`. Silently\n   omitting the block would misrepresent the run as having no reasoning.\n4. **One run, one folder, one immutable record.** Never edit a captured\n   transcript after the fact. Corrections go in `notes.md` as an annotation.\n5. **Redact secrets before publishing.** Scan for keys/tokens; a transcript\n   contains every command the agent ran and every file it read.\n\n## Step 1 — locate the repo\n\nFind the bench-runs checkout (the directory containing both `public/results/`\nand `scripts/build-manifest.mjs`). If the current directory is inside one, use it;\notherwise ask. Everything below is relative to that root.\n\n## Step 2 — find the source session\n\nSession logs are written by the harness, usually under the user's home directory.\nSee `references/harness-recipes.md` for exact paths and formats, plus the\ndetection commands, for: **pi**, **Claude Code**, **Codex CLI/Desktop**,\n**OpenAI Chat Completions / Responses**, **Anthropic Messages**, and generic\nJSONL. If the harness is unknown, ask for the log or the API request/response pair\nand use the `generic` adapter.\n\nCapture facts about the *environment* while you still have them — harness version,\nreasoning level, sampling parameters, sandbox, GPU. Some of this is only in the\nsession header or the CLI flags, not in the messages.\n\n## Step 3 — make the run directory first, then capture into it\n\nEvery new run gets its own directory before anything else. **Ask first, scaffold\nsecond**: before creating anything, ask the user for the run name and tags with\nthe interactive question tool (`ask_user_question`) — never invent them.\nAsk both in one go:\n\n- **Run name** — the human title for the card and folder slug. Propose your\n  best suggestion as the recommended option (e.g. `\"<model> — <task>\"`);\n  the user can also just type their own.\n- **Tags** — multi-select from your suggestions (task type, benchmark, topic);\n  the user can add their own. Do not ask for the model — it is appended to the\n  tags automatically (see below).\n\nThen scaffold it with the repo helper (the capture tool targets the same folder\nwith `--id`):\n\n```bash\ncd /path/to/bench-runs\nnpm run new -- \"Muse Spark — hello-world html\" \\\n  --model muse-spark-1.3-contributor \\\n  --tags html,hello-world,muse-spark-1.3-contributor\n# → public/results/2026-09-25_muse-spark-hello-world-html/\n```\n\nDo the work with that folder as home: task artefacts (`.html`, images, video,\n`.wasm`, logs) go straight into `<folder>/media/`. `.html` files render on the\nsite as embedded playables; everything visual stays visible while prompts,\ntranscripts and raw logs collapse into the audit trail automatically.\n\nAlways include the model id in `--tags` — the site's tag chips are how runs get\nfiltered by model.\n\nThen normalise the source log into the same folder with the bundled capture\ntool. `--id` reuses the scaffolded directory and `--force` lets the capture\nrefresh its own files; hand-placed files under `media/` are left alone. Note\nthe capture **rewrites `run.json`**, so artefacts only survive via `--media`,\nand the graded outcome via `--metrics` — pass them every time:\n\n```bash\nnode <skill-dir>/scripts/capture-run.mjs \\\n  --repo /path/to/bench-runs \\\n  --id 2026-09-25_muse-spark-hello-world-html \\\n  --force \\\n  --from ~/.pi/agent/sessions/--Users-me-proj--/2026-06-21T10-12-00Z_abc.jsonl \\\n  --format pi \\\n  --title \"Muse Spark — hello-world html\" \\\n  --model muse-spark-1.3-contributor \\\n  --harness \"pi 0.87.1\" \\\n  --benchmark hello-world \\\n  --tags html,hello-world,muse-spark-1.3-contributor \\\n  --media /tmp/hello-world-media.json \\\n  --metrics /tmp/hello-world-metrics.json \\\n  --summary \"Two sentences: what ran, what happened, headline number.\"\n```\n\n`--media` is a JSON array of the artefact entries staged in `media/`, e.g.\n`[{\"type\":\"playable\",\"src\":\"media/hello-world.html\",\"caption\":\"Generated site\"}]`.\n`--metrics` is the graded outcome, e.g. `{\"success\":{\"value\":1,\"unit\":\"%\"}}`.\n\n`--format auto` (the default) sniffs the log. If the harness is unsupported,\nwrite the canonical JSONL yourself — the schema is small and specified in\n`references/transcript-format.md`.\n\nThen verify before going further:\n\n```bash\nnode <skill-dir>/scripts/verify-run.mjs public/results/<run-id>\n```\n\nIt fails on unparseable transcripts, non-monotonic `seq`, missing originals,\nmissing files, and leaked credentials. Fix what it reports; re-run until clean.\n\n## Step 4 — complete `run.json`\n\n`capture-run.mjs` writes a working skeleton. You must then edit it to add what a\nmachine cannot know:\n\n- **`summary`** — two sentences: what was run, what happened, what the headline\n  number is. This is the only prose most people will read.\n- **`metrics`** — the graded outcome. `{ \"value\": …, \"unit\": \"%\", \"hint\": \"…\" }`.\n  Values ≤ 1 with `\"unit\": \"%\"` render as percentages.\n- **`environment`** — the reproducibility block. Always include `harness`,\n  `harness_version`, `model`, `reasoning_mode`, `decoding`, `tools`, `max_steps`,\n  `sandbox`, `hardware`. These are the fields that make a run comparable.\n- **`charts`** — only if you have real series data (score per category, latency\n  vs. length). Never draw a chart from invented numbers.\n- **`media`** — screenshots of the UI, a screen recording, a `.wasm` playable of\n  the artefact, external logs. `capture-run.mjs` already wires up `prompt.md`,\n  `transcript.md` and `transcript.jsonl`.\n- **`notes.md`** — method, extraction rules, known caveats, everything the run\n  *cannot* show.\n\nKeep `status` honest: `running` and `partial` exist so a preliminary number is\nnever mistaken for a final one.\n\n## Step 5 — publish (one command: verify → manifest → push)\n\n```bash\ncd /path/to/bench-runs\nnpm run publish -- <run-id>   # verify-run + manifest + git commit + git push\nnpm run dev                   # optional: eyeball it at http://127.0.0.1:4173\n```\n\n`--no-push` commits without pushing; `--dry-run` prints the steps without\nrunning them; `--message \"…\"` overrides the default `results: <run-id>` commit\nmessage. The command fails fast — a red verify or manifest build stops before\nanything is committed. CI redeploys afterwards; open tabs pick the run up\nautomatically.\n\n## What \"captured everything\" means\n\nBefore you call a run done, all of these must be answerable from the folder alone:\n\n- [ ] The exact task prompt, byte-identical, in `prompt.md` and in the first\n      `user.message` event with `original_prompt: true`\n- [ ] Every thinking/reasoning block, in order, with empty/encrypted ones marked\n      as such rather than dropped — and `reasoning.visible` telling the truth\n- [ ] Every assistant message that produced user-visible output\n- [ ] Every tool call with its full input, and every result (errors included) —\n      a run whose tools failed is a more interesting record, not a worse one\n- [ ] The final output as its own field (`run.end.output`), not inferred\n- [ ] Model id, harness + version, reasoning mode/effort/budget, decoding params\n- [ ] Usage, duration, step/turn counts, stop reason where the harness reports them\n- [ ] The untouched original log in `media/raw/`\n- [ ] Zero credentials, zero absolute home paths you are not happy to publish\n- [ ] `verify-run.mjs` exits 0\n\n## Reference\n\n- `references/transcript-format.md` — canonical event schema, field by field\n- `references/harness-recipes.md` — per-harness paths, shapes, sniffing, gotchas\n- `scripts/capture-run.mjs` — adapt + capture into the run folder + write `run.json`\n- `scripts/publish-run.mjs` — verify + manifest + commit + push in one step\n- `scripts/verify-run.mjs` — validation and secret scanning\n- `scripts/transcript-to-md.mjs` — re-render `transcript.md` after edits\n</skill>\n\n\"generate a voxel house in 3js\"\n"
+        },
+        {
+          "type": "markdown",
+          "src": "results/2026-09-25_three-js-voxel-house-demo/system-prompt.md",
+          "caption": "System prompt",
+          "text": "## preamble\nYou are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.\n\n## tools\n<tools>\n- mcpScript: Batch multiple MCP tool calls in one JavaScript request (loop, filter, chain)\n- mcp: MCP gateway — install by URL, status, search, describe, auth, and single MCP tool calls\n- web_search: Use for web research questions. Prefer {queries:[...]} with 2-4 varied angles over a single query for broader coverage. Omit provider unless explicitly overriding the configured default.\n- source_check: Gather structured source evidence and passage-level citations for manual semantic review of a claim.\n- fetch_content: Use to fetch URL content, direct images, GitHub repos, and videos.\n- get_search_content: Use after web_search, source_check, or fetch_content to retrieve stored content via responseId. Use findText to locate passages without paging through the full content.\n- ask_user_question: Ask the user up to 4 structured questions (2-4 options each) when requirements are ambiguous\n\nIn addition to the tools above, you may have access to other custom tools depending on the project.\n</tools>\n\n## rules\n<rules>\n- Name every new addon file (extension, skill, prompt, theme) with the 'fe-' prefix.\n- Use ask_user_question whenever the user's request is underspecified and you cannot proceed without concrete decisions — you can ask up to 4 questions per invocation.\n- Each question MUST have 2-4 options. Every option requires a concise label (1-5 words) and a description explaining what the choice means or its trade-offs. The user can additionally type a custom answer via the automatically appended \"Type something.\" row on every question, or press Esc to abandon the questionnaire. Do NOT author \"Other\" or \"Type something.\" labels yourself — reserved labels are rejected at runtime.\n- Set multiSelect: true when multiple answers are valid. Provide an options[].preview markdown string when an option benefits from richer side-by-side context (mockups, code snippets, diagrams, configs) — single-select only. The \"Type something.\" row is appended to every question; in preview mode it expands to the full pane width while typing so the custom answer is not cramped into the narrow options column. If you recommend a specific option, make that the first option and append \"(Recommended)\" to its label.\n- Do not stack multiple ask_user_question calls back-to-back — group all clarifying questions into one invocation.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n## docs\n<docs>\nPi documentation (read only when the user asks about pi itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), pi packages (docs/packages.md), environment variables (docs/environment-variables.md)\n- When working on pi topics, read the docs and examples, and follow .md cross-references before implementing\n- Always read pi .md files completely and follow links to related docs (e.g., tui.md for TUI API details)\n</docs>\n\n## skills\n<skills>\nThe following skills provide specialized instructions for specific tasks.\nUse the read tool to load a skill's file when the task matches its description.\nWhen a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n\n<available_skills>\n  <skill>\n    <name>fe-capture-benchmark-run</name>\n    <description>Capture a complete, auditable record of an LLM or agent run from any harness (pi, Claude Code, Codex, OpenAI/Anthropic SDKs, LangGraph, or a custom eval script) into a publishable bench-runs result. Preserves the original prompt verbatim, every thinking/reasoning block, all tool calls and results, and the final output, alongside model, harness, and reasoning-mode metadata. Use when asked to log, capture, archive, transcribe, or publish a run, or to turn a session or API trace into a benchmark result.</description>\n    <location>/Users/fender/.pi/agent/skills/fe-capture-benchmark-run/SKILL.md</location>\n  </skill>\n</available_skills>\n</skills>\n\n## cwd\n<cwd>\n/Users/fender\n</cwd>\n"
+        },
+        {
+          "type": "markdown",
+          "src": "results/2026-09-25_three-js-voxel-house-demo/transcript.md",
+          "lazy": true,
+          "caption": "Full transcript — prompt, 45 reasoning block(s), 63 tool call(s) and the final output",
+          "bytes": 296183
+        },
+        {
+          "type": "file",
+          "src": "results/2026-09-25_three-js-voxel-house-demo/transcript.jsonl",
+          "label": "transcript.jsonl (canonical, machine readable)",
+          "bytes": 449085
+        },
+        {
+          "type": "file",
+          "src": "results/2026-09-25_three-js-voxel-house-demo/media/raw/2026-09-25T23-01-24-051Z_01a0dacd-51d2-74c0-b788-3db806b3bef8.jsonl",
+          "label": "Original pi session log (untouched)",
+          "download": true,
+          "bytes": 1496184
+        },
+        {
+          "type": "playable",
+          "kind": "iframe",
+          "src": "results/2026-09-25_three-js-voxel-house-demo/media/playable/index.html",
+          "caption": "Interactive standalone voxel house: drag to orbit, scroll to zoom, day/night and auto-spin toggles",
+          "aspect": "16 / 10",
+          "wide": true,
+          "bytes": 14538
+        },
+        {
+          "type": "file",
+          "src": "results/2026-09-25_three-js-voxel-house-demo/media/playable/three.min.js",
+          "label": "Vendored three.js r128 (UMD) — the demo's only dependency, no CDN",
+          "download": true,
+          "bytes": 603445
+        },
+        {
+          "type": "image",
+          "src": "results/2026-09-25_three-js-voxel-house-demo/media/screenshot.png",
+          "caption": "Headless Chrome screenshot, day state — 2,215 voxels in three InstancedMesh passes (opaque, glass, smoke)",
+          "alt": "Voxel house with stepped red roof, brick chimney, timber corner posts, flagstone path, picket fence and blocky trees",
+          "wide": true,
+          "bytes": 171012
+        },
+        {
+          "type": "image",
+          "src": "results/2026-09-25_three-js-voxel-house-demo/media/screenshot-night.png",
+          "caption": "Same scene at night via index.html?time=night — the lamp inside the front window lights up",
+          "alt": "Voxel house at night with glowing windows under a dark blue sky",
+          "wide": true,
+          "bytes": 200567
+        }
+      ],
+      "_meta": {
+        "dir": "2026-09-25_three-js-voxel-house-demo",
+        "base": "results/2026-09-25_three-js-voxel-house-demo/",
+        "version": "1p4xky6",
+        "preview": "results/2026-09-25_three-js-voxel-house-demo/media/screenshot.png",
+        "mediaCount": 6,
+        "bytes": 3231014,
+        "warnings": []
+      }
+    },
     {
       "id": "2026-09-25_gpt-6-sol-voxel-character-html-js",
       "title": "gpt-6-sol — Voxel character HTML/JS, reasoning=high",

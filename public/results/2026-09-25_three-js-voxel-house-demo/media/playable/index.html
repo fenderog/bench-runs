@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voxel House — three.js</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1117; }
+  canvas { display: block; }
+  #ui {
+    position: fixed; left: 14px; top: 14px; z-index: 10;
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #e6edf3; background: rgba(13, 17, 23, .72);
+    border: 1px solid rgba(230, 237, 243, .18); border-radius: 10px;
+    padding: 12px 14px; backdrop-filter: blur(8px); max-width: 280px;
+    user-select: none;
+  }
+  #ui h1 { margin: 0 0 6px; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: #7ee787; }
+  #ui p { margin: 0 0 8px; color: #9198a1; }
+  #ui button {
+    font: inherit; color: #e6edf3; background: #21262d; cursor: pointer;
+    border: 1px solid rgba(230, 237, 243, .18); border-radius: 6px;
+    padding: 5px 9px; margin: 0 6px 0 0;
+  }
+  #ui button:hover { background: #30363d; border-color: rgba(230, 237, 243, .35); }
+  #stats { margin-top: 8px; color: #9198a1; }
+  #fail {
+    position: fixed; inset: 0; display: none; place-content: center; text-align: center;
+    font: 14px/1.6 ui-monospace, monospace; color: #ffa198; padding: 40px;
+  }
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <h1>Voxel House</h1>
+  <p>drag to orbit &middot; scroll to zoom</p>
+  <button id="timeBtn">night</button>
+  <button id="spinBtn">auto-spin</button>
+  <button id="resetBtn">reset view</button>
+  <div id="stats">voxels: —</div>
+</div>
+<div id="fail">WebGL is unavailable in this browser,<br>so the voxel house cannot be rendered.</div>
+
+<!-- Vendored three.js r128 (UMD), no network required -->
+<script src="three.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  if (!window.THREE) { document.getElementById('fail').style.display = 'grid'; return; }
+
+  // ---------------------------------------------------------------- palette
+  var C = {
+    grass:      0x6ab04c,
+    grassDark:  0x64a745,
+    dirt:       0x8b6b4a,
+    stone:      0x9aa0a6,
+    plank:      0xc98f52,
+    plankDark:  0xa8723c,
+    log:        0x7a5230,
+    roof:       0xb84a3f,
+    roofDark:   0x9b3a31,
+    brick:      0xa4563c,
+    glass:      0x9fd8f0,
+    doorWood:   0x6b4426,
+    knob:       0xf0c419,
+    trunk:      0x6b4a2f,
+    leaf:       0x3f8f3f,
+    leafLight:  0x4ea84e,
+    white:      0xf2f2f2,
+    red:        0xe0533f,
+    yellow:     0xf2c14e,
+    smoke:      0xcfd4d8,
+    water:      0x3a7ca5
+  };
+
+  // ------------------------------------------------------------ voxel world
+  // A sparse voxel store: one key per cell, last write wins.
+  var cells = new Map();
+  function key(x, y, z) { return x + ',' + y + ',' + z; }
+  function set(x, y, z, color) { cells.set(key(x, y, z), { x: x, y: y, z: z, c: color }); }
+  function fill(x0, x1, y0, y1, z0, z1, color) {
+    for (var x = x0; x <= x1; x++)
+      for (var y = y0; y <= y1; y++)
+        for (var z = z0; z <= z1; z++) set(x, y, z, color);
+  }
+  // Hollow box: walls only, optionally with no floor.
+  function shell(x0, x1, y0, y1, z0, z1, color, skipFloor) {
+    for (var x = x0; x <= x1; x++)
+      for (var y = y0; y <= y1; y++)
+        for (var z = z0; z <= z1; z++) {
+          var edge = x === x0 || x === x1 || z === z0 || z === z1 || (!skipFloor && y === y0);
+          if (edge) set(x, y, z, color);
+        }
+  }
+
+  // ------------------------------------------------------------- terrain
+  var GRID = 13;                       // half-extent in voxels
+  for (var x = -GRID; x <= GRID; x++) {
+    for (var z = -GRID; z <= GRID; z++) {
+      // gentle checker for grass texture
+      set(x, 0, z, ((x + z) % 2 === 0) ? C.grass : C.grassDark);
+    }
+  }
+  // a small pond in the north-east corner
+  fill(7, 10, 0, 0, -10, -7, C.water);
+  fill(6, 6, 0, 0, -9, -8, C.stone);
+  fill(11, 11, 0, 0, -9, -8, C.stone);
+  // dirt underside, so the world reads as a block of earth on a plinth
+  fill(-GRID, GRID, -1, -1, -GRID, GRID, C.dirt);
+
+  // --------------------------------------------------------------- house
+  // Footprint: x -4..4, z -3..3. Walls y 1..5, hollow interior.
+  var WX0 = -4, WX1 = 4, WZ0 = -3, WZ1 = 3, WY0 = 1, WY1 = 5;
+
+  shell(WX0, WX1, WY0, WY1, WZ0, WZ1, C.plank);
+  fill(WX0, WX1, WY0, WY0, WZ0, WZ1, C.plankDark);   // interior floor
+  // corner posts in log colour for a timber-frame look
+  [[WX0, WZ0], [WX0, WZ1], [WX1, WZ0], [WX1, WZ1]].forEach(function (p) {
+    fill(p[0], p[0], WY0, WY1, p[1], p[1], C.log);
+  });
+  // a horizontal log band under the eaves
+  fill(WX0, WX1, WY1, WY1, WZ0, WZ1, C.log);
+
+  // step pitched roof: ridge runs along x, gable ends face +z / -z
+  var ROOF_Y = WY1 + 1;                                  // first roof course
+  var roofLevels = [4, 3, 2, 1, 0];                      // z half-extent per course
+  roofLevels.forEach(function (dz, i) {
+    var ex = (i === 0) ? 1 : 0;                          // eaves overhang on course 0
+    fill(WX0 - ex, WX1 + ex, ROOF_Y + i, ROOF_Y + i, -dz, dz, i % 2 ? C.roofDark : C.roof);
+  });
+
+  // chimney: brick column rising through the roof from the interior
+  var CH_TOP = ROOF_Y + 5;
+  fill(2, 3, WY0, CH_TOP, -1, 0, C.brick);
+  fill(2, 3, CH_TOP + 1, CH_TOP + 1, -1, 0, C.stone);    // 2x2 cap, sits on the stack
+  // smoke, two drifting puffs above the chimney
+  set(3, CH_TOP + 2, -1, C.smoke);
+  set(4, CH_TOP + 3, 0, C.smoke);
+
+  // door on the +z face, with a knob
+  fill(0, 1, WY0, WY0 + 1, WZ1, WZ1, C.doorWood);
+  set(0, WY0 + 1, WZ1, C.knob);
+  fill(-1, 2, WY0 + 2, WY0 + 2, WZ1, WZ1, C.plankDark);       // lintel
+
+  // windows: glass with a frame
+  function windowPane(x0, x1, y0, y1, z0, z1) {
+    fill(x0, x1, y0, y1, z0, z1, C.glass);
+  }
+  windowPane(-3, -2, WY0 + 1, WY0 + 2, WZ1, WZ1);             // front-left
+  windowPane(3, 3, WY0 + 1, WY0 + 2, WZ1, WZ1);               // front-right
+  windowPane(WX0, WX0, WY0 + 1, WY0 + 2, -2, -1);             // west wall
+  windowPane(WX0, WX0, WY0 + 1, WY0 + 2, 1, 2);               // west wall
+  windowPane(WX1, WX1, WY0 + 1, WY0 + 2, -1, 1);              // east wall
+  windowPane(-1, 1, WY0 + 1, WY0 + 2, WZ0, WZ0);              // back wall
+
+  // a lamp inside the front-right window, lit after dark
+  var lampCell = { x: 3, y: WY0 + 1, z: WZ1 - 1 };
+
+  // ------------------------------------------------------------ yard
+  // flagstone path from the door towards the south edge
+  for (var pz = WZ1 + 1; pz <= WZ1 + 8; pz++) {
+    var px = (pz % 2 === 0) ? 0 : 1;
+    set(px, 0, pz, C.stone);
+    set(px - 1, 0, pz, C.stone);
+  }
+  // low picket fence along the south and west edges: posts every other cell
+  // with a rail between them, plus a gateway in front of the path
+  for (var fx = -9; fx <= 9; fx++) {
+    if (fx === 0 || fx === 1) continue;                        // gateway
+    var post = (fx + 9) % 2 === 0;
+    set(fx, 1, 10, post ? C.log : C.plankDark);
+    set(fx, 2, 10, post ? C.log : C.plank);
+  }
+  for (var fz = -9; fz <= 10; fz++) {
+    var wpost = (fz + 9) % 2 === 0;
+    set(-10, 1, fz, wpost ? C.log : C.plankDark);
+    set(-10, 2, fz, wpost ? C.log : C.plank);
+  }
+
+  // trees: trunk plus a rounded canopy
+  function tree(tx, tz, h) {
+    for (var y = 1; y <= h; y++) set(tx, y, tz, C.trunk);
+    for (var dx = -2; dx <= 2; dx++) {
+      for (var dy = -1; dy <= 2; dy++) {
+        for (var dz = -2; dz <= 2; dz++) {
+          var r = Math.abs(dx) + Math.abs(dy * 1.4) + Math.abs(dz);
+          if (dx === 0 && dz === 0 && dy <= 0) continue;         // keep the trunk visible
+          if (r > 3.6) continue;                                // round the canopy off
+          var leaf = (r > 2.4) ? C.leaf : C.leafLight;
+          var ly = h + 1 + dy;
+          if (!cells.has(key(tx + dx, ly, tz + dz))) set(tx + dx, ly, tz + dz, leaf);
+        }
+      }
+    }
+  }
+  tree(-8, -6, 3);
+  tree(8, 6, 4);
+  tree(-7, 7, 3);
+  tree(9, -5, 3);
+
+  // flowers scattered on the lawn
+  var flowerSpots = [[-6, 3], [-7, 2], [6, 4], [7, 3], [-5, 6], [4, 7], [-2, 8], [5, -4], [-6, -3]];
+  var flowerColors = [C.red, C.yellow, C.white];
+  flowerSpots.forEach(function (s, i) {
+    set(s[0], 1, s[1], flowerColors[i % flowerColors.length]);
+  });
+
+  // ------------------------------------------------------------- geometry
+  var voxels = Array.from(cells.values());
+  var scene = new THREE.Scene();
+  var SKY_DAY = 0x8fc7e8, SKY_NIGHT = 0x0d1b2a;
+  scene.background = new THREE.Color(SKY_DAY);
+  scene.fog = new THREE.Fog(SKY_DAY, 45, 95);
+
+  var camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 500);
+
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
+  document.body.appendChild(renderer.domElement);
+
+  // lights
+  var hemi = new THREE.HemisphereLight(0xbfe3ff, 0x3f6b32, 0.55);
+  scene.add(hemi);
+
+  var sun = new THREE.DirectionalLight(0xfff3d0, 1.15);
+  sun.position.set(22, 34, 16);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far = 120;
+  sun.shadow.camera.left = -32;
+  sun.shadow.camera.right = 32;
+  sun.shadow.camera.top = 32;
+  sun.shadow.camera.bottom = -32;
+  sun.shadow.bias = -0.0008;
+  scene.add(sun);
+
+  var lamp = new THREE.PointLight(0xffd27f, 0, 16);
+  lamp.position.set(lampCell.x, lampCell.y, lampCell.z);
+  scene.add(lamp);
+
+  var geom = new THREE.BoxGeometry(1, 1, 1);
+  var dummy = new THREE.Object3D();
+  var color = new THREE.Color();
+
+  // Split translucent voxels (windows, smoke) out of the opaque pass, so the
+  // opaque mesh keeps clean depth sorting and shadows and glass really shows
+  // the interior behind it.
+  var opaqueVoxels = [], glassVoxels = [], smokeVoxels = [];
+  voxels.forEach(function (v) {
+    if (v.c === C.glass) glassVoxels.push(v);
+    else if (v.c === C.smoke) smokeVoxels.push(v);
+    else opaqueVoxels.push(v);
+  });
+
+  function buildMesh(list, materialOptions, castsShadow) {
+    var m = new THREE.InstancedMesh(
+      geom, new THREE.MeshLambertMaterial(Object.assign({ color: 0xffffff }, materialOptions)), list.length
+    );
+    list.forEach(function (v, i) {
+      dummy.position.set(v.x, v.y + 0.5, v.z);
+      dummy.updateMatrix();
+      m.setMatrixAt(i, dummy.matrix);
+      m.setColorAt(i, color.setHex(v.c));
+    });
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    m.castShadow = !!castsShadow;
+    m.receiveShadow = !!castsShadow;
+    scene.add(m);
+    return m;
+  }
+
+  buildMesh(opaqueVoxels, {}, true);
+  buildMesh(glassVoxels, { transparent: true, opacity: 0.5, depthWrite: false }, false);
+  buildMesh(smokeVoxels, { transparent: true, opacity: 0.55, depthWrite: false }, false);
+
+  document.getElementById('stats').textContent = 'voxels: ' + voxels.length.toLocaleString();
+
+  // ------------------------------------------------------- orbit controls
+  // Small hand-rolled orbit controller so the demo needs no extra vendored
+  // three.js example file and stays a two-file, offline artefact.
+  var target = new THREE.Vector3(0, 4, 0);
+  var sph = { radius: 30, theta: 0.7, phi: 1.05 };  // phi = polar angle from +y
+  var CAM_DEFAULT = { radius: 30, theta: 0.7, phi: 1.05 };
+
+  function applyCamera() {
+    var sinPhi = Math.sin(sph.phi);
+    camera.position.set(
+      target.x + sph.radius * sinPhi * Math.sin(sph.theta),
+      target.y + sph.radius * Math.cos(sph.phi),
+      target.z + sph.radius * sinPhi * Math.cos(sph.theta)
+    );
+    camera.lookAt(target);
+  }
+  applyCamera();
+
+  var dragging = false, lastX = 0, lastY = 0;
+  var el = renderer.domElement;
+  el.addEventListener('pointerdown', function (e) {
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    sph.theta -= (e.clientX - lastX) * 0.006;
+    sph.phi = Math.min(1.52, Math.max(0.18, sph.phi - (e.clientY - lastY) * 0.006));
+    lastX = e.clientX; lastY = e.clientY;
+    applyCamera();
+  });
+  el.addEventListener('pointerup', function (e) {
+    dragging = false;
+    if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+  });
+  el.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    sph.radius = Math.min(70, Math.max(12, sph.radius + Math.sign(e.deltaY) * 1.8));
+    applyCamera();
+  }, { passive: false });
+
+  // ---------------------------------------------------------------- toggles
+  var night = false, spinning = false;
+
+  function setTime(isNight) {
+    night = isNight;
+    scene.background.setHex(night ? SKY_NIGHT : SKY_DAY);
+    scene.fog.color.setHex(night ? SKY_NIGHT : SKY_DAY);
+    sun.intensity = night ? 0.18 : 1.15;
+    sun.color.setHex(night ? 0x9fb6d6 : 0xfff3d0);
+    hemi.intensity = night ? 0.28 : 0.55;
+    lamp.intensity = night ? 1.5 : 0;
+    document.getElementById('timeBtn').textContent = night ? 'day' : 'night';
+  }
+
+  document.getElementById('timeBtn').addEventListener('click', function () { setTime(!night); });
+  // allow deep-linking a state, e.g. index.html?time=night
+  if (/(^|[?&])time=night(&|$)/.test(window.location.search)) setTime(true);
+  document.getElementById('spinBtn').addEventListener('click', function () {
+    spinning = !spinning;
+    this.textContent = spinning ? 'stop spin' : 'auto-spin';
+  });
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    sph.radius = CAM_DEFAULT.radius; sph.theta = CAM_DEFAULT.theta; sph.phi = CAM_DEFAULT.phi;
+    applyCamera();
+  });
+
+  window.addEventListener('resize', function () {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ------------------------------------------------------------- main loop
+  function tick() {
+    requestAnimationFrame(tick);
+    if (spinning) { sph.theta += 0.0028; applyCamera(); }
+    renderer.render(scene, camera);
+  }
+  tick();
+
+  // expose a little for debugging / automated screenshot checks
+  window.__voxelHouse = { voxels: voxels.length, scene: scene, camera: camera, setTime: setTime };
+})();
+</script>
+</body>
+</html>

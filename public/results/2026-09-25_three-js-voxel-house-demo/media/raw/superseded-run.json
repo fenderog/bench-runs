@@ -1,0 +1,74 @@
+{
+  "id": "2026-09-25_three-js-voxel-house-demo",
+  "title": "Three.js voxel house demo",
+  "model": "deepseek-v4.1-flash",
+  "benchmark": "voxel-house-threejs",
+  "date": "2026-09-25T23:02:58.000Z",
+  "status": "complete",
+  "tags": [
+    "voxel",
+    "threejs",
+    "3d",
+    "deepseek"
+  ],
+  "summary": "deepseek-v4.1-flash generated an interactive 3D voxel cottage with 2,215 voxels, procedural trees, perimeter fencing, chimney smoke, day/night lighting toggles, and orbital camera controls.",
+  "metrics": [
+    {
+      "label": "task_completion",
+      "value": 1,
+      "unit": "%",
+      "better": null,
+      "hint": "1/1 standalone HTML, 3D voxel scene rendered with orbit controls"
+    },
+    {
+      "label": "voxels",
+      "value": 2215,
+      "unit": "",
+      "better": null,
+      "hint": "total instantiated voxel cubes"
+    },
+    {
+      "label": "fps",
+      "value": 60,
+      "unit": "",
+      "better": null,
+      "hint": "steady 60 FPS animation loop"
+    },
+    {
+      "label": "duration",
+      "value": 142.4,
+      "unit": "s",
+      "better": null,
+      "hint": "generation and compilation time"
+    }
+  ],
+  "environment": {
+    "harness": "pi",
+    "harness_version": "0.87.1",
+    "model": "deepseek-v4.1-flash",
+    "model_provider": "deepseek",
+    "reasoning_mode": "high",
+    "tools": "read, bash, edit, write, addon_log",
+    "sandbox": "local shell, Chrome WebGL",
+    "hardware": "Apple M4, 16 GB RAM"
+  },
+  "links": [],
+  "media": [
+    {
+      "type": "image",
+      "src": "media/screenshot.png",
+      "caption": "Three.js voxel cottage scene with lighting and chimney smoke",
+      "alt": "Voxel house with fenced yard, trees and chimney",
+      "wide": true
+    },
+    {
+      "type": "playable",
+      "kind": "iframe",
+      "src": "media/playable/index.html",
+      "caption": "Interactive 3D voxel cottage: drag to orbit; scroll to zoom; toggle day/night",
+      "aspect": "16 / 10",
+      "wide": true
+    }
+  ],
+  "notes": "# Three.js Voxel House Generation Notes\n\n- **Task:** Generate an interactive 3D voxel house using Three.js with camera controls and lighting.\n- **Outcome:** The model produced a standalone HTML application using local vendored Three.js r128.\n- **Features:** 2,215 individual colored voxel cubes representing terrain, pathways, fences, trees, cottage structure, and semi-transparent chimney smoke puffs.\n- **Interaction:** Includes OrbitControls-style mouse dragging, mouse-wheel zooming, day/night lighting modes, and an automatic spin toggle."
+}

@@ -1,7 +1,7 @@
 /* ============================================================================
-   Bench Runs — viewer
+   Bench Runs — Precision Viewer & Telemetry Dashboard
    Reads data/results.json (generated from public/results/<id>/run.json) and
-   renders cards, metrics, charts, galleries and interactive media.
+   renders cards, telemetry tables, charts, galleries and interactive media.
    ========================================================================== */
 
 const CFG = Object.freeze({
@@ -14,10 +14,11 @@ const CFG = Object.freeze({
   ...(window.BENCH_CONFIG || {}),
 });
 
-const CHART_COLORS = ['#7c9cff', '#46d19b', '#f0b849', '#f2685f', '#c084fc', '#22d3ee'];
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 /* ── DOM helpers ──────────────────────────────────────────────────────────── */
 const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 function h(tag, props = {}, ...kids) {
   const node = document.createElement(tag);
@@ -25,7 +26,6 @@ function h(tag, props = {}, ...kids) {
     if (value === null || value === undefined || value === false) continue;
     if (key === 'class') node.className = value;
     else if (key === 'text') node.textContent = value;
-    // Only ever fed escaped markup from the built-in markdown renderer.
     else if (key === 'html') node.innerHTML = value;
     else if (key === 'dataset') Object.assign(node.dataset, value);
     else if (key === 'style') setStyles(node, value);
@@ -115,14 +115,13 @@ const initials = (text) => {
   return (words[0][0] + (words[1]?.[0] ?? '')).toUpperCase();
 };
 
-/** Append a cache-busting version so re-uploaded assets at the same path refresh. */
 function bust(src, version) {
   if (!src || !version) return src;
   if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:')) return src;
   return src + (src.includes('?') ? '&' : '?') + 'v=' + version;
 }
 
-/* ── markdown (small, safe subset) ────────────────────────────────────────── */
+/* ── markdown renderer ────────────────────────────────────────────────────── */
 function md(source, base = '') {
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -154,49 +153,40 @@ function md(source, base = '') {
 
     if (/^\s*$/.test(line)) { i++; continue; }
 
-    // fenced code
-    const fence = line.match(/^\s*(```+|~~~+)\s*([\w+-]*)\s*$/);
+    // code block
+    const fence = line.match(/^(\s*)(```|~~~)(\w*)/);
     if (fence) {
-      const close = new RegExp(`^\\s*${fence[1][0]}{${fence[1].length},}\\s*$`);
-      const body = [];
+      const tag = fence[2];
+      const lang = fence[3];
       i++;
-      while (i < lines.length && !close.test(lines[i])) body.push(lines[i++]);
+      const codeLines = [];
+      while (i < lines.length && !lines[i].startsWith(fence[1] + tag)) codeLines.push(lines[i++]);
       i++;
-      out.push(`<pre><code data-lang="${esc(fence[2] || '')}">${esc(body.join('\n'))}</code></pre>`);
+      out.push(`<pre><code class="lang-${esc(lang)}">${esc(codeLines.join('\n'))}</code></pre>`);
       continue;
     }
 
-    // heading
-    const heading = line.match(/^(#{1,6})\s+(.*)$/);
-    if (heading) {
-      const level = Math.min(heading[1].length + 1, 6);
-      out.push(`<h${level}>${inline(heading[2])}</h${level}>`);
+    // headings
+    const hMatch = line.match(/^(#{1,6})\s+(.*)$/);
+    if (hMatch) {
+      const level = hMatch[1].length;
+      out.push(`<h${level}>${inline(hMatch[2])}</h${level}>`);
       i++;
-      continue;
-    }
-
-    // horizontal rule
-    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
-
-    // table
-    if (line.includes('|') && /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i + 1] ?? '')) {
-      const cells = (row) => row.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map((c) => c.trim());
-      const head = cells(line);
-      i += 2;
-      const rows = [];
-      while (i < lines.length && lines[i].includes('|') && !/^\s*$/.test(lines[i])) rows.push(cells(lines[i++]));
-      out.push(
-        `<div class="table-wrap"><table><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join('')}</tr></thead>` +
-        `<tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`,
-      );
       continue;
     }
 
     // blockquote
     if (/^\s*>/.test(line)) {
-      const body = [];
-      while (i < lines.length && /^\s*>/.test(lines[i])) body.push(lines[i++].replace(/^\s*>\s?/, ''));
-      out.push(`<blockquote>${body.map(inline).join('<br>')}</blockquote>`);
+      const quotes = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) quotes.push(lines[i++].replace(/^\s*>\s?/, ''));
+      out.push(`<blockquote>${md(quotes.join('\n'), base)}</blockquote>`);
+      continue;
+    }
+
+    // hr
+    if (/^\s*([-*_]\s*){3,}$/.test(line)) {
+      out.push('<hr>');
+      i++;
       continue;
     }
 
@@ -353,6 +343,7 @@ const state = {
   query: '',
   filters: { benchmark: new Set(), model: new Set(), tag: new Set() },
   sort: LS.get('bench.sort', 'date-desc'),
+  view: LS.get('bench.view', 'grid'),
   seen: new Set(LS.get('bench.seen', [])),
   newIds: new Set(),
   signature: null,
@@ -362,7 +353,7 @@ const state = {
   openId: null,
 };
 
-/* ── load + live refresh ──────────────────────────────────────────────────── */
+/* ── live status + notifications ──────────────────────────────────────────── */
 let pollTimer = null;
 
 function setLive(kind, text) {
@@ -393,6 +384,7 @@ function showNotice(message, isError = false) {
   node.hidden = false;
 }
 
+/* ── load + polling ───────────────────────────────────────────────────────── */
 async function load({ manual = false, quiet = false } = {}) {
   if (!quiet) setLive('busy', manual ? 'checking…' : 'loading…');
   try {
@@ -428,8 +420,9 @@ async function load({ manual = false, quiet = false } = {}) {
 
     showNotice(null);
     if (changed || first) {
+      updateStats();
       renderChips();
-      renderGrid();
+      renderActiveView();
     } else {
       updateFooter();
     }
@@ -443,12 +436,13 @@ async function load({ manual = false, quiet = false } = {}) {
         'If this is the first run, add a folder under public/results/ and run `npm run manifest`.',
         true,
       );
-      if (state.error && !state.signature) renderGrid();
+      if (state.error && !state.signature) renderActiveView();
     }
     return;
   }
 
   setLive('ok', `live · ${state.runs.length} run${state.runs.length === 1 ? '' : 's'}`);
+  updateStats();
   updateFooter();
 }
 
@@ -461,7 +455,36 @@ function startPolling() {
   }, CFG.pollSeconds * 1000);
 }
 
-/* ── filtering ────────────────────────────────────────────────────────────── */
+/* ── stats banner ─────────────────────────────────────────────────────────── */
+function updateStats() {
+  const runs = state.runs;
+  $('#statRuns').textContent = runs.length ? String(runs.length) : '0';
+
+  const models = new Set(runs.map((r) => r.model).filter(Boolean));
+  $('#statModels').textContent = models.size ? String(models.size) : '0';
+
+  let totalAcc = 0;
+  let accCount = 0;
+  for (const r of runs) {
+    const accMetric = (r.metrics ?? []).find((m) => /acc|score|pass|success|completion/i.test(m.label));
+    if (accMetric && Number.isFinite(Number(accMetric.value))) {
+      let val = Number(accMetric.value);
+      if (val <= 1 && accMetric.unit === '%') val *= 100;
+      else if (val <= 1) val *= 100;
+      totalAcc += val;
+      accCount++;
+    }
+  }
+  $('#statSuccess').textContent = accCount > 0 ? `${Math.round(totalAcc / accCount)}%` : '—';
+
+  const sortedDates = runs
+    .map((r) => r.date)
+    .filter(Boolean)
+    .sort((a, b) => Date.parse(b) - Date.parse(a));
+  $('#statLatest').textContent = sortedDates.length ? fmtDate(sortedDates[0]) : '—';
+}
+
+/* ── filtering & sorting ─────────────────────────────────────────────────── */
 const searchable = (run) => [
   run.id, run.title, run.model, run.benchmark, run.summary,
   ...(run.tags ?? []),
@@ -496,7 +519,7 @@ function applyFilters() {
     'title-asc': (a, b) => a.title.localeCompare(b.title),
     'model-asc': (a, b) => (a.model || '~').localeCompare(b.model || '~') || a.title.localeCompare(b.title),
     'accuracy-desc': (a, b) =>
-      metricValue(b, /acc|score|pass|success|f1|exact|win/i) - metricValue(a, /acc|score|pass|success|f1|exact|win/i) ||
+      metricValue(b, /acc|score|pass|success|f1|exact|completion/i) - metricValue(a, /acc|score|pass|success|f1|exact|completion/i) ||
       (Date.parse(b.date ?? 0) || 0) - (Date.parse(a.date ?? 0) || 0),
   };
   state.filtered.sort(sorters[state.sort] ?? sorters['date-desc']);
@@ -514,19 +537,17 @@ function groupedValues(key) {
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
-/* ── render: filters ──────────────────────────────────────────────────────── */
 function renderChips() {
   const host = $('#filters');
   clear(host);
 
   const groups = [
-    { key: 'model', label: 'model', mono: true },
-    { key: 'tag', label: 'tag' },
+    { key: 'model', label: 'Model', mono: true },
+    { key: 'tag', label: 'Tag' },
   ];
 
   for (const group of groups) {
     const entries = groupedValues(group.key);
-    // A single distinct value is not worth filtering on (except tags, which are free-form).
     if (entries.length <= 1 && group.key !== 'tag') continue;
     if (!entries.length) continue;
 
@@ -539,9 +560,9 @@ function renderChips() {
         const set = state.filters[group.key];
         set.has(value) ? set.delete(value) : set.add(value);
         renderChips();
-        renderGrid();
+        renderActiveView();
       },
-    }, h('span', { text: value, style: group.mono ? { fontFamily: 'var(--mono)', fontSize: '11.5px' } : null }),
+    }, h('span', { text: value, style: group.mono ? { fontFamily: 'var(--mono)', fontSize: '11px' } : null }),
       h('span', { class: 'chip-count', text: String(count) })));
 
     host.append(h('div', { class: 'chip-group' }, h('span', { class: 'chip-label', text: group.label }), chips));
@@ -550,18 +571,19 @@ function renderChips() {
   const anyActive = Object.values(state.filters).some((s) => s.size);
   if (anyActive) {
     host.append(h('button', {
-      type: 'button', class: 'chip', onclick: () => {
+      type: 'button', class: 'chip chip-clear', onclick: () => {
         for (const set of Object.values(state.filters)) set.clear();
         state.query = '';
         $('#search').value = '';
+        $('#searchClear').hidden = true;
         renderChips();
-        renderGrid();
+        renderActiveView();
       },
-    }, 'clear all'));
+    }, 'Clear all'));
   }
 }
 
-/* ── render: cards ────────────────────────────────────────────────────────── */
+/* ── media helpers ────────────────────────────────────────────────────────── */
 function cardThumb(run) {
   const version = run._meta?.version;
   const preview = run._meta?.preview;
@@ -576,9 +598,6 @@ function cardThumb(run) {
 
 const fallbackThumb = (run) => h('div', { class: 'card-thumb-fallback' }, h('span', { text: initials(run.model || run.benchmark || run.title) }));
 
-/* A run whose output is HTML gets a live preview as its thumbnail: a fully
-   sandboxed (no scripts), non-interactive iframe layered over the fallback,
-   so a failed load still shows the initials. Local files only. */
 function htmlThumb(run) {
   const item = (run.media ?? []).find((m) =>
     m.type === 'playable' && !m.missing && !m.remote &&
@@ -596,9 +615,23 @@ function htmlThumb(run) {
   );
 }
 
+function inferMediaTag(run) {
+  const playable = (run.media ?? []).find((m) => m.type === 'playable');
+  if (playable) {
+    if (playable.kind === 'wasm' || (typeof playable.src === 'string' && playable.src.endsWith('.wasm'))) return 'WASM';
+    if (run.title?.toLowerCase().includes('three') || run.benchmark?.toLowerCase().includes('three')) return '3D WEBGL';
+    return 'INTERACTIVE';
+  }
+  if ((run.media ?? []).some((m) => m.type === 'video')) return 'VIDEO';
+  if ((run.media ?? []).some((m) => m.type === 'image')) return 'SCREENSHOT';
+  return null;
+}
+
+/* ── render: card ─────────────────────────────────────────────────────────── */
 function renderCard(run) {
-  const version = run._meta?.version;
   const metrics = (run.metrics ?? []).slice(0, 3);
+  const mediaTag = inferMediaTag(run);
+  const isRunning = run.status === 'running';
 
   const card = h('a', {
     class: 'card',
@@ -609,21 +642,25 @@ function renderCard(run) {
     h('div', { class: 'card-thumb' },
       cardThumb(run),
       h('div', { class: 'card-overlays' },
-        state.newIds.has(run.id) ? h('span', { class: 'badge badge-new', text: 'NEW' }) : null,
+        isRunning
+          ? h('span', { class: 'badge badge-status-running', text: 'RUNNING' })
+          : h('span', { class: 'badge badge-status-complete', text: 'COMPLETE' }),
+        h('div', { class: 'card-overlays-right' },
+          mediaTag ? h('span', { class: 'badge', text: mediaTag }) : null,
+          state.newIds.has(run.id) ? h('span', { class: 'badge badge-new', text: 'NEW' }) : null,
+        ),
       ),
     ),
     h('div', { class: 'card-body' },
-      h('h3', { class: 'card-title', text: run.title }),
-      h('div', { class: 'card-meta' },
-        h('span', { text: fmtDate(run.date) }),
-        run.benchmark ? h('span', { class: 'dot' }) : null,
-        run.benchmark ? h('span', { text: run.benchmark }) : null,
-        run.model ? h('span', { class: 'dot' }) : null,
-        run.model ? h('span', { class: 'card-model', text: run.model }) : null,
+      h('div', { class: 'card-header-line' },
+        run.model ? h('span', { class: 'card-model-pill', text: run.model }) : null,
+        h('span', { class: 'card-date', text: fmtDate(run.date) }),
       ),
+      h('h3', { class: 'card-title', text: run.title }),
+      run.benchmark ? h('div', { class: 'card-benchmark', text: run.benchmark }) : null,
       run.summary ? h('p', { class: 'card-summary', text: run.summary }) : null,
       (run.tags ?? []).length
-        ? h('div', { class: 'card-tags' }, run.tags.slice(0, 5).map((tag) => h('span', { class: 'tag', text: tag })))
+        ? h('div', { class: 'card-tags' }, run.tags.slice(0, 4).map((tag) => h('span', { class: 'tag', text: tag })))
         : null,
       metrics.length
         ? h('div', { class: 'card-metrics' }, metrics.map((metric) =>
@@ -636,6 +673,58 @@ function renderCard(run) {
   return card;
 }
 
+/* ── render: table row ────────────────────────────────────────────────────── */
+function renderTableRow(run) {
+  const version = run._meta?.version;
+  const preview = run._meta?.preview;
+  const isRunning = run.status === 'running';
+
+  let thumbNode;
+  if (preview && !run.media?.find((m) => m.src === preview)?.missing) {
+    thumbNode = h('img', { src: bust(preview, version), alt: '', loading: 'lazy' });
+  } else {
+    thumbNode = h('div', { class: 'fallback-mini', text: initials(run.model || run.title) });
+  }
+
+  const primaryMetric = (run.metrics ?? [])[0];
+  const metricText = primaryMetric
+    ? fmtNumber(primaryMetric.value, primaryMetric.unit) + (primaryMetric.unit ? (primaryMetric.unit === '%' ? '%' : ' ' + primaryMetric.unit) : '')
+    : '—';
+
+  const turnsMetric = (run.metrics ?? []).find((m) => m.label === 'turns');
+  const callsMetric = (run.metrics ?? []).find((m) => m.label === 'tool_calls');
+  const durationMetric = (run.metrics ?? []).find((m) => m.label === 'duration');
+
+  const tr = h('tr', {
+    onclick: () => { location.hash = `#/run/${encodeURIComponent(run.id)}`; },
+  },
+    h('td', {}, h('div', { class: 'table-thumb-cell' }, thumbNode)),
+    h('td', { class: 'table-title-cell' },
+      h('strong', { text: run.title }),
+      h('small', { text: run.benchmark || '—' }),
+    ),
+    h('td', {}, h('span', { class: 'card-model-pill', text: run.model || '—' })),
+    h('td', {},
+      isRunning
+        ? h('span', { class: 'badge badge-status-running', text: 'RUNNING' })
+        : h('span', { class: 'badge badge-status-complete', text: 'COMPLETE' })),
+    h('td', {},
+      primaryMetric
+        ? h('div', {},
+          h('span', { class: 'table-metric-val', text: metricText }),
+          h('div', { style: { fontSize: '10px', color: 'var(--faint)' }, text: primaryMetric.label }))
+        : h('span', { text: '—' })),
+    h('td', { style: { fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--muted)' } },
+      `${turnsMetric?.value ?? '—'} / ${callsMetric?.value ?? '—'}`),
+    h('td', { style: { fontFamily: 'var(--mono)', fontSize: '12px' } },
+      durationMetric ? `${durationMetric.value}s` : '—'),
+    h('td', { style: { fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--faint)' } }, fmtDate(run.date)),
+    h('td', {}, h('span', { class: 'btn btn-ghost', style: { padding: '4px 8px', fontSize: '11.5px' }, text: 'Inspect →' })),
+  );
+  return tr;
+}
+
+/* ── render: views ────────────────────────────────────────────────────────── */
 function renderSkeletons(n = 6) {
   const grid = clear($('#grid'));
   for (let i = 0; i < n; i++) {
@@ -647,27 +736,51 @@ function renderSkeletons(n = 6) {
   }
 }
 
-function renderGrid() {
+function renderActiveView() {
   const grid = $('#grid');
-  if (state.loading) return renderSkeletons();
+  const tableSection = $('#tableView');
+  const tableBody = $('#tableBody');
+
+  if (state.loading) {
+    renderSkeletons();
+    return;
+  }
 
   applyFilters();
   clear(grid);
-  $('#empty').hidden = state.filtered.length > 0;
+  clear(tableBody);
+
+  const hasRuns = state.filtered.length > 0;
+  $('#empty').hidden = hasRuns;
   $('#count').textContent = `${state.filtered.length} of ${state.runs.length}`;
 
-  if (state.filtered.length === 0) {
+  if (!hasRuns) {
     $('#emptyHint').textContent = state.runs.length
-      ? 'No run matches the current search and filters.'
+      ? 'No runs match the current search terms or filter selection.'
       : 'Add a folder under public/results/<run-id>/ with a run.json, then run `npm run manifest`.';
   }
 
-  const fragment = document.createDocumentFragment();
-  for (const run of state.filtered) fragment.append(renderCard(run));
-  grid.append(fragment);
+  if (state.view === 'table') {
+    grid.hidden = true;
+    tableSection.hidden = false;
+    const fragment = document.createDocumentFragment();
+    for (const run of state.filtered) fragment.append(renderTableRow(run));
+    tableBody.append(fragment);
+  } else {
+    tableSection.hidden = true;
+    grid.hidden = false;
+    const fragment = document.createDocumentFragment();
+    for (const run of state.filtered) fragment.append(renderCard(run));
+    grid.append(fragment);
+  }
 }
 
-/* ── render: media ────────────────────────────────────────────────────────── */
+// Backward-compatible alias for existing callers
+function renderGrid() {
+  renderActiveView();
+}
+
+/* ── media renderer ───────────────────────────────────────────────────────── */
 function caption(run, item, index) {
   if (!item.caption) return null;
   return h('figcaption', { class: 'media-caption' },
@@ -743,7 +856,7 @@ function renderPlayable(run, item, index) {
   const version = run._meta?.version;
   const host = h('div', { class: 'playable-host', style: { '--pa': item.aspect || '16 / 9' } });
   const bar = h('div', { class: 'playable-bar' },
-    h('span', { text: item.kind === 'wasm' ? 'WebAssembly module' : 'interactive build' }),
+    h('span', { text: item.kind === 'wasm' ? 'WebAssembly module' : 'Interactive sandbox build' }),
     h('span', { class: 'spacer' }),
   );
 
@@ -754,7 +867,7 @@ function renderPlayable(run, item, index) {
   },
     h('span', { class: 'play-icon' },
       h('span', { html: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>' })),
-    h('span', { class: 'playable-meta', text: item.caption ? `Click to load — ${item.caption}` : 'Click to load interactive demo' }),
+    h('span', { class: 'playable-meta', text: item.caption ? `Click to launch — ${item.caption}` : 'Click to launch interactive build' }),
   );
 
   const block = h('figure', { class: 'media-block' + (item.wide ? ' wide' : '') }, launch, bar, caption(run, item, index));
@@ -824,7 +937,7 @@ function renderTable(run, item, index) {
   const columns = item.columns ?? [];
   const rows = item.rows ?? [];
   return h('figure', { class: 'media-block wide' },
-    h('div', { class: 'table-wrap', style: { border: '0', borderRadius: '0' } },
+    h('div', { class: 'table-wrap' },
       h('table', {},
         h('thead', {}, h('tr', {}, columns.map((c) => h('th', { text: String(c) })))),
         h('tbody', {}, rows.map((row) => h('tr', {}, row.map((cell) => h('td', { text: String(cell) }))))),
@@ -833,11 +946,6 @@ function renderTable(run, item, index) {
   );
 }
 
-/**
- * Markdown/code blocks are usually inlined into the manifest by the builder, but
- * large files (transcripts) are marked `lazy` and fetched on demand so the
- * manifest stays small enough to poll.
- */
 function renderTextBlock(run, item, index) {
   const isMarkdown = item.type === 'markdown';
   const body = h('div', {
@@ -865,7 +973,6 @@ function renderTextBlock(run, item, index) {
         return res.text();
       })
       .then((text) => {
-        // Only paint if this block is still on screen for the same run.
         if (body.isConnected) paint(text);
       })
       .catch((err) => {
@@ -906,10 +1013,7 @@ function renderMedia(run, item, index) {
   }
 }
 
-/* ── render: detail ───────────────────────────────────────────────────────── */
-/* Media that documents the run (prompts, transcripts, logs) rather than showing
-   its result. These collapse into the audit trail; everything visual or
-   interactive stays up top. */
+/* ── render: detail modal ─────────────────────────────────────────────────── */
 const isAuditMedia = (item) => ['markdown', 'code', 'file'].includes(item.type);
 
 function renderDetail(run) {
@@ -920,6 +1024,17 @@ function renderDetail(run) {
   const envEntries = Object.entries(run.environment ?? {});
   const warnings = run._meta?.warnings ?? [];
   const hasAudit = auditMedia.length > 0 || envEntries.length > 0 || run.notes || warnings.length > 0;
+  const isRunning = run.status === 'running';
+
+  // Breadcrumbs
+  const breadcrumb = clear($('#detailBreadcrumb'));
+  breadcrumb.append(
+    h('a', { href: '#/', text: 'Runs' }),
+    h('span', { class: 'sep', text: '/' }),
+    h('span', { text: run.model || 'model' }),
+    h('span', { class: 'sep', text: '/' }),
+    h('span', { class: 'curr', text: run.benchmark || run.title }),
+  );
 
   const copyLink = (label = 'Copy link') => h('button', {
     type: 'button', class: 'btn',
@@ -927,107 +1042,128 @@ function renderDetail(run) {
       const url = `${location.origin}${location.pathname}#/run/${encodeURIComponent(run.id)}`;
       try {
         await navigator.clipboard.writeText(url);
-        toast('Link copied');
+        toast('Link copied to clipboard');
       } catch { toast(url); }
       event.currentTarget.blur();
     },
-  }, label);
+  },
+    h('span', { html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' }),
+    label);
 
-  const auditButtons = h('div', { class: 'detail-actions' },
-    CFG.showJson
-      ? h('a', { class: 'btn', href: `${run._meta?.base ?? ''}run.json`, target: '_blank', rel: 'noopener' }, 'run.json')
-      : null,
-    h('button', {
-      type: 'button', class: 'btn',
-      onclick: async () => {
-        try {
-          await navigator.clipboard.writeText(JSON.stringify(run, null, 2));
-          toast('Run JSON copied');
-        } catch { toast('Clipboard unavailable'); }
-      },
-    }, 'Copy JSON'),
-    CFG.repoUrl ? h('a', { class: 'btn', href: CFG.repoUrl, target: '_blank', rel: 'noopener' }, 'GitHub') : null,
-  );
-
-  const body = h('div', { class: 'detail-body' },
-    h('h2', { class: 'detail-title', text: run.title }),
+  const heroBlock = h('div', { class: 'detail-hero' },
     h('div', { class: 'detail-sub' },
-      h('span', { text: fmtDate(run.date) }),
-      run.benchmark ? h('span', { text: '·' }) : null,
+      isRunning
+        ? h('span', { class: 'badge badge-status-running', text: 'RUNNING' })
+        : h('span', { class: 'badge badge-status-complete', text: 'COMPLETE' }),
+      h('span', { class: 'card-model-pill', text: run.model || 'model' }),
+      run.benchmark ? h('span', { class: 'dot', text: '·' }) : null,
       run.benchmark ? h('span', { text: run.benchmark }) : null,
-      run.model ? h('span', { text: '·' }) : null,
-      run.model ? h('span', { class: 'card-model', text: run.model }) : null,
+      h('span', { class: 'dot', text: '·' }),
+      h('span', { text: fmtDate(run.date) }),
     ),
-    run.summary ? h('p', { class: 'detail-summary', text: run.summary }) : null,
+    h('h2', { class: 'detail-title', text: run.title }),
+    run.summary ? h('div', { class: 'detail-summary-card', text: run.summary }) : null,
     (run.tags ?? []).length
       ? h('div', { class: 'detail-tags' }, run.tags.map((tag) => h('span', { class: 'tag', text: tag })))
       : null,
-    h('div', { class: 'detail-actions' }, copyLink()),
+    h('div', { class: 'detail-actions' },
+      copyLink(),
+      CFG.showJson
+        ? h('a', { class: 'btn btn-ghost', href: `${run._meta?.base ?? ''}run.json`, target: '_blank', rel: 'noopener' }, 'View run.json')
+        : null,
+      h('button', {
+        type: 'button', class: 'btn btn-ghost',
+        onclick: async () => {
+          try {
+            await navigator.clipboard.writeText(JSON.stringify(run, null, 2));
+            toast('Run JSON copied');
+          } catch { toast('Clipboard unavailable'); }
+        },
+      }, 'Copy JSON'),
+      CFG.repoUrl ? h('a', { class: 'btn btn-ghost', href: CFG.repoUrl, target: '_blank', rel: 'noopener' }, 'GitHub') : null,
+    ),
   );
 
+  const body = h('div', { class: 'detail-body' }, heroBlock);
+
+  // Metrics Section
   if (run.metrics?.length) {
     body.append(h('div', { class: 'section' },
-      h('h3', { text: 'metrics' }),
+      h('div', { class: 'section-header' },
+        h('h3', { text: 'Telemetry Metrics' }),
+      ),
       h('div', { class: 'tiles' }, run.metrics.map((metric) =>
         h('div', { class: 'tile' },
           h('div', { class: 'tile-label', text: metric.label }),
-          h('div', { class: 'tile-value' }, h('span', { text: fmtNumber(metric.value, metric.unit) }),
+          h('div', { class: 'tile-value' },
+            h('span', { text: fmtNumber(metric.value, metric.unit) }),
             metric.unit && metric.unit !== '%' ? h('span', { class: 'tile-unit', text: metric.unit })
               : metric.unit === '%' ? h('span', { class: 'tile-unit', text: '%' }) : null),
           metric.hint ? h('div', { class: 'tile-hint', text: metric.hint }) : null,
-          metric.better ? h('div', { class: 'tile-better', text: `higher is ${metric.better}` }) : null,
+          metric.better ? h('div', { class: 'tile-better', text: `↑ higher is ${metric.better}` }) : null,
         )))));
   }
 
+  // Charts
   const charts = (run.charts ?? []).map(renderChart).filter(Boolean);
   if (charts.length) {
     body.append(h('div', { class: 'section' },
-      h('h3', { text: 'charts' }),
+      h('div', { class: 'section-header' }, h('h3', { text: 'Performance Charts' })),
       h('div', { class: 'charts' }, charts)));
   }
 
+  // Primary Visuals / Artifacts
   if (primary.length) {
     body.append(h('div', { class: 'section' },
-      h('h3', { text: 'result' }),
+      h('div', { class: 'section-header' }, h('h3', { text: 'Artifacts & Execution Output' })),
       h('div', { class: 'gallery' }, primary.map((item, index) => renderMedia(run, item, index)))));
   }
 
+  // Audit Trail & Reproducibility
   if (hasAudit) {
-    const trail = h('details', { class: 'audit', open: primary.length === 0 || undefined },
-      h('summary', {},
-        h('span', { text: 'Audit trail' }),
-        h('span', { class: 'audit-hint', text: 'prompt · transcript · environment' })),
+    const summaryHeader = h('summary', {},
+      h('span', { class: 'audit-title' },
+        h('span', { html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>' }),
+        h('span', { text: 'Audit Trail & Reproducibility Spec' })),
+      h('span', { class: 'audit-hint', text: 'Prompt · Transcript · Hardware · Environment' }),
     );
+
+    const auditContent = h('div', { class: 'audit-content' });
+
     if (warnings.length) {
-      trail.append(h('div', { class: 'section' },
-        h('h3', { text: 'warnings' }),
+      auditContent.append(h('div', {},
         h('div', { class: 'notice' }, h('div', {}, warnings.map((w) => h('div', { text: `⚠ ${w}` }))))));
     }
+
     if (envEntries.length) {
-      trail.append(h('div', { class: 'section' },
-        h('h3', { text: 'environment' }),
+      auditContent.append(h('div', {},
+        h('h4', { style: { fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', color: 'var(--faint)', marginBottom: '8px' }, text: 'Environment Specification' }),
         h('dl', { class: 'kv' }, envEntries.flatMap(([key, value]) => [
           h('dt', { text: key.replace(/_/g, ' ') }),
           h('dd', { text: Array.isArray(value) ? value.join(', ') : String(value) }),
         ]))));
     }
+
     if (run.notes) {
-      trail.append(h('div', { class: 'section' },
-        h('h3', { text: 'notes' }),
+      auditContent.append(h('div', {},
+        h('h4', { style: { fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', color: 'var(--faint)', marginBottom: '8px' }, text: 'Notes & Observations' }),
         h('div', { class: 'prose', html: md(run.notes, run._meta?.base ?? '') })));
     }
+
     if (auditMedia.length) {
-      trail.append(h('div', { class: 'section' },
-        h('h3', { text: `files · ${auditMedia.length}` }),
+      auditContent.append(h('div', {},
+        h('h4', { style: { fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', color: 'var(--faint)', marginBottom: '8px' }, text: `Run Logs & Transcripts (${auditMedia.length})` }),
         h('div', { class: 'gallery' }, auditMedia.map((item, index) => renderMedia(run, item, primary.length + index)))));
     }
-    trail.append(auditButtons);
+
+    const trail = h('details', { class: 'audit', open: primary.length === 0 || undefined },
+      summaryHeader, auditContent);
     body.append(trail);
   }
 
   if (run.links?.length) {
     body.append(h('div', { class: 'section' },
-      h('h3', { text: 'links' }),
+      h('div', { class: 'section-header' }, h('h3', { text: 'External Links' })),
       h('div', { class: 'links-list' }, run.links.map((link) =>
         h('a', { class: 'btn', href: link.href, target: '_blank', rel: 'noopener' }, link.label)))));
   }
@@ -1075,10 +1211,23 @@ $('#closeBtn').addEventListener('click', () => { location.hash = '#/'; });
 $('#lightboxClose').addEventListener('click', closeLightbox);
 $('#lightbox').addEventListener('click', (event) => { if (event.target.id === 'lightbox') closeLightbox(); });
 
-/* ── misc UI ──────────────────────────────────────────────────────────────── */
+/* ── view toggle & controls ───────────────────────────────────────────────── */
+function setView(viewMode) {
+  state.view = viewMode;
+  LS.set('bench.view', viewMode);
+  $('#viewGridBtn').classList.toggle('is-active', viewMode === 'grid');
+  $('#viewGridBtn').setAttribute('aria-pressed', viewMode === 'grid' ? 'true' : 'false');
+  $('#viewTableBtn').classList.toggle('is-active', viewMode === 'table');
+  $('#viewTableBtn').setAttribute('aria-pressed', viewMode === 'table' ? 'true' : 'false');
+  renderActiveView();
+}
+
+$('#viewGridBtn').addEventListener('click', () => setView('grid'));
+$('#viewTableBtn').addEventListener('click', () => setView('table'));
+
 function updateFooter() {
   const updated = state.generatedAt ? fmtRelative(state.generatedAt) : '—';
-  $('#footerMeta').textContent = `${state.runs.length} run${state.runs.length === 1 ? '' : 's'} · manifest updated ${updated}`;
+  $('#footerMeta').textContent = `${state.runs.length} run${state.runs.length === 1 ? '' : 's'} recorded · manifest synchronized ${updated}`;
 }
 
 function setTheme(theme) {
@@ -1093,20 +1242,32 @@ $('#refreshBtn').addEventListener('click', () => load({ manual: true }));
 $('#topBtn').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 let searchTimer = null;
-$('#search').addEventListener('input', (event) => {
+const searchInput = $('#search');
+const searchClear = $('#searchClear');
+
+searchInput.addEventListener('input', (event) => {
   const value = event.target.value;
+  searchClear.hidden = !value;
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     state.query = value;
-    renderGrid();
+    renderActiveView();
   }, 120);
+});
+
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  searchClear.hidden = true;
+  state.query = '';
+  renderActiveView();
+  searchInput.focus();
 });
 
 $('#sort').value = state.sort;
 $('#sort').addEventListener('change', (event) => {
   state.sort = event.target.value;
   LS.set('bench.sort', state.sort);
-  renderGrid();
+  renderActiveView();
 });
 
 document.addEventListener('keydown', (event) => {
@@ -1126,15 +1287,18 @@ window.addEventListener('offline', () => setLive('error', 'offline'));
 /* ── boot ─────────────────────────────────────────────────────────────────── */
 (function boot() {
   $('#siteTitle').textContent = CFG.title;
-  $('#siteSubtitle').textContent = CFG.subtitle || '';
+  if (CFG.subtitle) $('#siteSubtitle').textContent = CFG.subtitle;
   document.title = CFG.title;
-  document.querySelector('meta[name="description"]').setAttribute('content', CFG.subtitle || CFG.title);
+  document.querySelector('meta[name="description"]')?.setAttribute('content', CFG.subtitle || CFG.title);
 
   if (CFG.repoUrl) {
     const btn = $('#repoBtn');
     btn.hidden = false;
-    btn.addEventListener('click', () => window.open(CFG.repoUrl, '_blank', 'noopener'));
+    btn.href = CFG.repoUrl;
   }
+
+  // Initialize view mode from storage
+  setView(state.view);
 
   renderChips();
   renderSkeletons();
