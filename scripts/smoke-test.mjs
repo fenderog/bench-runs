@@ -208,6 +208,11 @@ async function main() {
     await cdp.shot('01-grid');
 
     // ── live update: publish a run while the page is open ───────────────────
+    // Only meaningful when the manifest being served comes from this checkout.
+    const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/.test(URL_BASE);
+    if (!isLocal) {
+      console.log('  – skipping live-publish test (not serving a local manifest)');
+    } else {
     await publishSmokeRun();
     await sleep(300);
     const live = await cdp.eval(`
@@ -231,6 +236,7 @@ async function main() {
     await cdp.shot('02-live-update');
     await unpublishSmokeRun();
     await cdp.eval(`document.querySelector('#refreshBtn').click(); await new Promise(r => setTimeout(r, 1200)); return 1;`);
+    }
 
     // ── detail: charts, metrics, media ──────────────────────────────────────
     const runId = await cdp.eval(`
@@ -410,7 +416,7 @@ async function main() {
     console.log(`  screenshots: ${path.relative(process.cwd(), OUT_DIR)}/`);
     if (failed.length) process.exitCode = 1;
   } finally {
-    await unpublishSmokeRun().catch(() => {});
+    if (/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/.test(URL_BASE)) await unpublishSmokeRun().catch(() => {});
     try { cdp?.ws.close(); } catch { /* ignore */ }
     if (!KEEP) proc.kill();
     if (!KEEP) await fsp.rm(profile, { recursive: true, force: true }).catch(() => {});
