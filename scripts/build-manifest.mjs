@@ -350,6 +350,23 @@ async function main() {
   await fsp.mkdir(path.dirname(OUT_FILE), { recursive: true });
   await fsp.writeFile(OUT_FILE, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
+  // Cache-bust the app shell so a deploy never serves stale JS/CSS: stamp the
+  // asset URLs in index.html with a hash of their content. Deterministic —
+  // unchanged shell, unchanged stamp, no diff.
+  const shellStamp = fnv1a(
+    `${await fsp.readFile(path.join(ROOT, 'public', 'app.js'), 'utf8')}\n` +
+    await fsp.readFile(path.join(ROOT, 'public', 'styles.css'), 'utf8'),
+  ).toString(36);
+  const indexFile = path.join(ROOT, 'public', 'index.html');
+  const indexHtml = await fsp.readFile(indexFile, 'utf8');
+  const stamped = indexHtml
+    .replace(/(src="app\.js)(\?v=[^"]*)?"/, `$1?v=${shellStamp}"`)
+    .replace(/(href="styles\.css)(\?v=[^"]*)?"/, `$1?v=${shellStamp}"`);
+  if (stamped !== indexHtml) {
+    await fsp.writeFile(indexFile, stamped, 'utf8');
+    console.log(`  stamped app shell ?v=${shellStamp}`);
+  }
+
   console.log(`✓ ${runs.length} run${runs.length === 1 ? '' : 's'} → public/data/results.json`);
   for (const w of warnings) console.log(`  ⚠ ${w.run}: ${w.message}`);
   if (STRICT && warnings.length) {
