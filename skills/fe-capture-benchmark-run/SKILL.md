@@ -4,7 +4,7 @@ description: Capture a complete, auditable record of an LLM or agent run from an
 license: MIT
 compatibility: Node 18+. Writes into a bench-runs repo (the one containing public/results/ and scripts/build-manifest.mjs). No network access needed.
 metadata:
-  version: 1.1.0
+  version: 1.2.0
   format: bench-run/1
 ---
 
@@ -70,8 +70,20 @@ session header or the CLI flags, not in the messages.
 
 ## Step 3 — make the run directory first, then capture into it
 
-Every new run gets its own directory before anything else. Scaffold it with the
-repo helper (the capture tool targets the same folder with `--id`):
+Every new run gets its own directory before anything else. **Ask first, scaffold
+second**: before creating anything, ask the user for the run name and tags with
+the interactive question tool (`ask_user_question`) — never invent them.
+Ask both in one go:
+
+- **Run name** — the human title for the card and folder slug. Propose your
+  best suggestion as the recommended option (e.g. `"<model> — <task>"`);
+  the user can also just type their own.
+- **Tags** — multi-select from your suggestions (task type, benchmark, topic);
+  the user can add their own. Do not ask for the model — it is appended to the
+  tags automatically (see below).
+
+Then scaffold it with the repo helper (the capture tool targets the same folder
+with `--id`):
 
 ```bash
 cd /path/to/bench-runs
