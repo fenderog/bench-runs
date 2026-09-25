@@ -1,0 +1,110 @@
+{
+  "id": "2026-09-25_gpt-6-sol-voxel-character-html-js",
+  "title": "gpt-6-sol — Voxel character HTML/JS, reasoning=high",
+  "model": "gpt-6-sol",
+  "benchmark": "voxel-character-html-js",
+  "date": "2026-09-25T22:23:34.428Z",
+  "status": "complete",
+  "tags": [
+    "voxel",
+    "html",
+    "canvas",
+    "interactive"
+  ],
+  "metrics": {
+    "task_completion": {
+      "value": 1,
+      "unit": "%",
+      "hint": "1/1 manual acceptance: standalone HTML, voxel character visible in Chrome"
+    },
+    "turns": {
+      "value": 3,
+      "hint": "assistant messages"
+    },
+    "reasoning_blocks": {
+      "value": 16,
+      "hint": "1 encrypted by the provider"
+    },
+    "tool_calls": {
+      "value": 28
+    },
+    "tool_errors": {
+      "value": 1,
+      "hint": "failed tool calls"
+    },
+    "duration": {
+      "value": 326.6,
+      "unit": "s"
+    }
+  },
+  "environment": {
+    "harness": "pi",
+    "model": "gpt-6-sol",
+    "model_provider": "openai-codex",
+    "reasoning_mode": "high",
+    "reasoning_visible": "partial — 15/16 block(s) disclosed, 1 encrypted by the provider",
+    "reasoning_encrypted": "yes, ciphertext preserved in media/raw/2026-09-25_voxel-character-through-final.jsonl",
+    "tools": "read, bash, edit, write, addon_log, grep, find, ls, powershell, mcpScript, mcp, web_search, source_check, fetch_content, get_search_content (available); actual calls: bash, ls, read, edit",
+    "working_directory": "/Users/fender",
+    "transcript_format": "pi",
+    "source_log": "2026-09-25_voxel-character-through-final.jsonl",
+    "harness_version": "0.87.1",
+    "decoding": null,
+    "max_steps": null,
+    "sandbox": "local shell, no container; Chrome headless for render check",
+    "hardware": "Apple M4, 16 GB RAM",
+    "usage_from_source": {
+      "input_tokens": 55687,
+      "output_tokens": 8741,
+      "cache_read_input_tokens": 395392,
+      "reasoning_tokens": 2531,
+      "total_tokens_reported": 459820
+    }
+  },
+  "links": [],
+  "media": [
+    {
+      "type": "markdown",
+      "src": "prompt.md",
+      "caption": "Original prompt (verbatim)"
+    },
+    {
+      "type": "markdown",
+      "src": "system-prompt.md",
+      "caption": "System prompt"
+    },
+    {
+      "type": "markdown",
+      "src": "transcript.md",
+      "lazy": true,
+      "caption": "Full transcript — prompt, 16 reasoning block(s), 28 tool call(s) and the final output"
+    },
+    {
+      "type": "file",
+      "src": "transcript.jsonl",
+      "label": "transcript.jsonl (canonical, machine readable)"
+    },
+    {
+      "type": "file",
+      "src": "media/raw/2026-09-25_voxel-character-through-final.jsonl",
+      "label": "Unmodified pi session prefix (through final response; 55 original records)",
+      "download": true
+    },
+    {
+      "type": "image",
+      "src": "media/screenshot.png",
+      "caption": "Headless Chrome screenshot of the generated demo",
+      "alt": "Voxel explorer with scarf, backpack and boots on a circular display base",
+      "wide": true
+    },
+    {
+      "type": "playable",
+      "kind": "iframe",
+      "src": "media/playable/index.html",
+      "caption": "Interactive standalone voxel character: drag to rotate; scroll to zoom; change jacket color",
+      "aspect": "16 / 10",
+      "wide": true
+    }
+  ],
+  "summary": "gpt-6-sol (pi, high reasoning) generated a self-contained, interactive HTML Canvas voxel explorer with rotation, zoom and jacket palettes. The JavaScript passed a syntax check and the page rendered in headless Chrome; manual task completion was 1/1."
+}
