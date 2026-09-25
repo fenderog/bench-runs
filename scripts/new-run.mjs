@@ -92,16 +92,14 @@ await fsp.writeFile(
 console.log(`✓ created public/results/${folder}/`);
 console.log(`
 Next:
-  1. Drop assets into public/results/${folder}/media/
-  2. Describe them in run.json -> "media": [
-       { "type": "image",    "src": "media/accuracy.png", "caption": "Accuracy by category" },
-       { "type": "video",    "src": "media/demo.mp4", "poster": "media/demo.jpg" },
-       { "type": "playable", "kind": "iframe", "src": "media/playable/index.html", "caption": "WASM demo" },
-       { "type": "playable", "kind": "wasm", "wasm": "media/mandel.wasm", "glue": "media/loader.js" },
-       { "type": "table",    "src": "media/metrics.csv" }
-     ]
-  3. npm run dev      # preview locally
-  4. git add -A && git commit -m "add run ${folder}" && git push
+  1. Drop artefacts into public/results/${folder}/media/
+     (.html renders as an embedded playable, plus image / video / table / code)
+  2. Capture the harness log into this same folder (rewrites run.json, so
+     declare artefacts via --media and keep the model id in --tags):
+       node skills/fe-capture-benchmark-run/scripts/capture-run.mjs \\
+         --repo . --id ${folder} --force --from <session.jsonl> \\
+         --media <media.json> --tags ${[...tags, '<model-id>'].filter(Boolean).join(',') || '<model-id>'}
+  3. npm run publish -- ${folder}   # verify + manifest + commit + push
 `);
 
 async function exists(p) {

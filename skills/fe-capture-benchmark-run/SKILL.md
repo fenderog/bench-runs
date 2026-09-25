@@ -4,7 +4,7 @@ description: Capture a complete, auditable record of an LLM or agent run from an
 license: MIT
 compatibility: Node 18+. Writes into a bench-runs repo (the one containing public/results/ and scripts/build-manifest.mjs). No network access needed.
 metadata:
-  version: 1.0.0
+  version: 1.1.0
   format: bench-run/1
 ---
 
@@ -68,23 +68,53 @@ Capture facts about the *environment* while you still have them — harness vers
 reasoning level, sampling parameters, sandbox, GPU. Some of this is only in the
 session header or the CLI flags, not in the messages.
 
-## Step 3 — normalise to `transcript.jsonl`
+## Step 3 — make the run directory first, then capture into it
 
-Run the bundled capture tool, which adapts the raw log, scaffolds the folder and
-writes `run.json`:
+Every new run gets its own directory before anything else. Scaffold it with the
+repo helper (the capture tool targets the same folder with `--id`):
+
+```bash
+cd /path/to/bench-runs
+npm run new -- "Muse Spark — hello-world html" \
+  --model muse-spark-1.3-contributor \
+  --tags html,hello-world,muse-spark-1.3-contributor
+# → public/results/2026-09-25_muse-spark-hello-world-html/
+```
+
+Do the work with that folder as home: task artefacts (`.html`, images, video,
+`.wasm`, logs) go straight into `<folder>/media/`. `.html` files render on the
+site as embedded playables; everything visual stays visible while prompts,
+transcripts and raw logs collapse into the audit trail automatically.
+
+Always include the model id in `--tags` — the site's tag chips are how runs get
+filtered by model.
+
+Then normalise the source log into the same folder with the bundled capture
+tool. `--id` reuses the scaffolded directory and `--force` lets the capture
+refresh its own files; hand-placed files under `media/` are left alone. Note
+the capture **rewrites `run.json`**, so artefacts only survive via `--media`,
+and the graded outcome via `--metrics` — pass them every time:
 
 ```bash
 node <skill-dir>/scripts/capture-run.mjs \
   --repo /path/to/bench-runs \
+  --id 2026-09-25_muse-spark-hello-world-html \
+  --force \
   --from ~/.pi/agent/sessions/--Users-me-proj--/2026-06-21T10-12-00Z_abc.jsonl \
   --format pi \
-  --title "Llama 3.1 8B — GSM8K, reasoning=high" \
-  --model meta-llama/Llama-3.1-8B-Instruct \
-  --harness "pi 0.4.2" \
-  --benchmark GSM8K \
-  --reasoning-mode "extended thinking, effort=high" \
-  --tags reasoning,math
+  --title "Muse Spark — hello-world html" \
+  --model muse-spark-1.3-contributor \
+  --harness "pi 0.87.1" \
+  --benchmark hello-world \
+  --tags html,hello-world,muse-spark-1.3-contributor \
+  --media /tmp/hello-world-media.json \
+  --metrics /tmp/hello-world-metrics.json \
+  --summary "Two sentences: what ran, what happened, headline number."
 ```
+
+`--media` is a JSON array of the artefact entries staged in `media/`, e.g.
+`[{"type":"playable","src":"media/hello-world.html","caption":"Generated site"}]`.
+`--metrics` is the graded outcome, e.g. `{"success":{"value":1,"unit":"%"}}`.
 
 `--format auto` (the default) sniffs the log. If the harness is unsupported,
 write the canonical JSONL yourself — the schema is small and specified in
@@ -122,16 +152,19 @@ machine cannot know:
 Keep `status` honest: `running` and `partial` exist so a preliminary number is
 never mistaken for a final one.
 
-## Step 5 — publish
+## Step 5 — publish (one command: verify → manifest → push)
 
 ```bash
 cd /path/to/bench-runs
-npm run manifest      # regenerates public/data/results.json, prints warnings
-npm run dev           # eyeball it at http://127.0.0.1:4173
-git add -A && git commit -m "results: <model> <benchmark>" && git push
+npm run publish -- <run-id>   # verify-run + manifest + git commit + git push
+npm run dev                   # optional: eyeball it at http://127.0.0.1:4173
 ```
 
-CI rebuilds the manifest and redeploys; open tabs pick the run up automatically.
+`--no-push` commits without pushing; `--dry-run` prints the steps without
+running them; `--message "…"` overrides the default `results: <run-id>` commit
+message. The command fails fast — a red verify or manifest build stops before
+anything is committed. CI redeploys afterwards; open tabs pick the run up
+automatically.
 
 ## What "captured everything" means
 
@@ -155,6 +188,7 @@ Before you call a run done, all of these must be answerable from the folder alon
 
 - `references/transcript-format.md` — canonical event schema, field by field
 - `references/harness-recipes.md` — per-harness paths, shapes, sniffing, gotchas
-- `scripts/capture-run.mjs` — adapt + scaffold + write `run.json`
+- `scripts/capture-run.mjs` — adapt + capture into the run folder + write `run.json`
+- `scripts/publish-run.mjs` — verify + manifest + commit + push in one step
 - `scripts/verify-run.mjs` — validation and secret scanning
 - `scripts/transcript-to-md.mjs` — re-render `transcript.md` after edits
