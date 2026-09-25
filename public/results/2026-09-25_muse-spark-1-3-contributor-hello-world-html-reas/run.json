@@ -1,0 +1,84 @@
+{
+  "id": "2026-09-25_muse-spark-1-3-contributor-hello-world-html-reas",
+  "title": "muse-spark-1.3-contributor — hello world html, reasoning=high",
+  "model": "muse-spark-1.3-contributor",
+  "benchmark": "hello-world",
+  "date": "2026-09-25T22:04:07.824Z",
+  "status": "running",
+  "summary": "muse-spark-1.3-contributor via pi 0.87.1 generated a single-file hello-world HTML site. The file write is evidenced in-transcript; the capture was taken mid-run so status stays running.",
+  "tags": [
+    "html",
+    "hello-world"
+  ],
+  "metrics": {
+    "success": {
+      "value": 1,
+      "unit": "%",
+      "hint": "hello-world.html written, renders 'Hello world'"
+    },
+    "turns": {
+      "value": 0,
+      "hint": "assistant messages"
+    },
+    "reasoning_blocks": {
+      "value": 13,
+      "hint": "10 encrypted by the provider"
+    },
+    "tool_calls": {
+      "value": 12
+    },
+    "duration": {
+      "value": 43.5,
+      "unit": "s"
+    }
+  },
+  "environment": {
+    "harness": "pi",
+    "harness_version": "0.87.1",
+    "model": "muse-spark-1.3-contributor",
+    "model_provider": "meta",
+    "reasoning_mode": "high",
+    "reasoning_visible": "partial — 3/13 block(s) disclosed, 10 encrypted by the provider",
+    "reasoning_encrypted": "yes, ciphertext preserved in media/raw/2026-09-25T22-03-49-961Z_01a0da98-9d46-74bd-b8a5-43614f90b080.jsonl",
+    "tools": "read, bash, edit, write, addon_log, grep, find, ls, powershell, mcpScript, mcp, web_search, source_check, fetch_content, get_search_content",
+    "sandbox": "local shell, no container",
+    "working_directory": "/Volumes/M2SSD/dev",
+    "transcript_format": "pi",
+    "source_log": "2026-09-25T22-03-49-961Z_01a0da98-9d46-74bd-b8a5-43614f90b080.jsonl"
+  },
+  "links": [],
+  "media": [
+    {
+      "type": "markdown",
+      "src": "prompt.md",
+      "caption": "Original prompt (verbatim)"
+    },
+    {
+      "type": "markdown",
+      "src": "system-prompt.md",
+      "caption": "System prompt"
+    },
+    {
+      "type": "markdown",
+      "src": "transcript.md",
+      "lazy": true,
+      "caption": "Full transcript — prompt, 13 reasoning block(s), 12 tool call(s) and the final output"
+    },
+    {
+      "type": "file",
+      "src": "media/hello-world.html",
+      "label": "Task artefact — generated hello-world site"
+    },
+    {
+      "type": "file",
+      "src": "transcript.jsonl",
+      "label": "transcript.jsonl (canonical, machine readable)"
+    },
+    {
+      "type": "file",
+      "src": "media/raw/2026-09-25T22-03-49-961Z_01a0da98-9d46-74bd-b8a5-43614f90b080.jsonl",
+      "label": "Original pi session log (untouched)",
+      "download": true
+    }
+  ]
+}
