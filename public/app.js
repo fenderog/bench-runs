@@ -15,10 +15,6 @@ const CFG = Object.freeze({
 });
 
 const CHART_COLORS = ['#7c9cff', '#46d19b', '#f0b849', '#f2685f', '#c084fc', '#22d3ee'];
-const MEDIA_ICONS = {
-  image: '🖼', video: '▶', playable: '⚙', audio: '♪', embed: '◫',
-  table: '▦', markdown: '¶', code: '{}', file: '⤓',
-};
 
 /* ── DOM helpers ──────────────────────────────────────────────────────────── */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -585,19 +581,9 @@ function cardThumb(run) {
 
 const fallbackThumb = (run) => h('div', { class: 'card-thumb-fallback' }, h('span', { text: initials(run.model || run.benchmark || run.title) }));
 
-function mediaCounts(run) {
-  const counts = new Map();
-  for (const item of run.media ?? []) {
-    if (item.type === 'markdown' && !item.src) continue;
-    counts.set(item.type, (counts.get(item.type) ?? 0) + 1);
-  }
-  return counts;
-}
-
 function renderCard(run) {
   const version = run._meta?.version;
   const metrics = (run.metrics ?? []).slice(0, 3);
-  const counts = mediaCounts(run);
 
   const card = h('a', {
     class: 'card',
@@ -611,12 +597,6 @@ function renderCard(run) {
         state.newIds.has(run.id) ? h('span', { class: 'badge badge-new', text: 'NEW' }) : null,
         run.status && run.status !== 'complete'
           ? h('span', { class: 'badge', text: run.status })
-          : null,
-        h('span', { class: 'spacer' }),
-        counts.size
-          ? h('span', { class: 'badge badge-media' },
-            [...counts.entries()].slice(0, 4).map(([type, count]) =>
-              h('span', { title: `${count} ${type}`, text: `${MEDIA_ICONS[type] ?? '•'}${count > 1 ? count : ''}` })))
           : null,
       ),
     ),
@@ -632,9 +612,6 @@ function renderCard(run) {
       run.summary ? h('p', { class: 'card-summary', text: run.summary }) : null,
       (run.tags ?? []).length
         ? h('div', { class: 'card-tags' }, run.tags.slice(0, 5).map((tag) => h('span', { class: 'tag', text: tag })))
-        : null,
-      (run._meta?.warnings ?? []).length
-        ? h('div', { class: 'card-warn', text: `⚠ ${run._meta.warnings[0]}` })
         : null,
       metrics.length
         ? h('div', { class: 'card-metrics' }, metrics.map((metric) =>
@@ -918,23 +895,33 @@ function renderMedia(run, item, index) {
 }
 
 /* ── render: detail ───────────────────────────────────────────────────────── */
+/* Media that documents the run (prompts, transcripts, logs) rather than showing
+   its result. These collapse into the audit trail; everything visual or
+   interactive stays up top. */
+const isAuditMedia = (item) => ['markdown', 'code', 'file'].includes(item.type);
+
 function renderDetail(run) {
   const host = clear($('#detailContent'));
-  const version = run._meta?.version;
   const media = run.media ?? [];
+  const primary = media.filter((item) => !isAuditMedia(item));
+  const auditMedia = media.filter(isAuditMedia);
+  const envEntries = Object.entries(run.environment ?? {});
+  const warnings = run._meta?.warnings ?? [];
+  const hasAudit = auditMedia.length > 0 || envEntries.length > 0 || run.notes || warnings.length > 0;
 
-  const actions = h('div', { class: 'detail-actions' },
-    h('button', {
-      type: 'button', class: 'btn',
-      onclick: async (event) => {
-        const url = `${location.origin}${location.pathname}#/run/${encodeURIComponent(run.id)}`;
-        try {
-          await navigator.clipboard.writeText(url);
-          toast('Link copied');
-        } catch { toast(url); }
-        event.currentTarget.blur();
-      },
-    }, 'Copy link'),
+  const copyLink = (label = 'Copy link') => h('button', {
+    type: 'button', class: 'btn',
+    onclick: async (event) => {
+      const url = `${location.origin}${location.pathname}#/run/${encodeURIComponent(run.id)}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast('Link copied');
+      } catch { toast(url); }
+      event.currentTarget.blur();
+    },
+  }, label);
+
+  const auditButtons = h('div', { class: 'detail-actions' },
     CFG.showJson
       ? h('a', { class: 'btn', href: `${run._meta?.base ?? ''}run.json`, target: '_blank', rel: 'noopener' }, 'run.json')
       : null,
@@ -960,22 +947,13 @@ function renderDetail(run) {
       run.benchmark ? h('span', { text: run.benchmark }) : null,
       run.model ? h('span', { text: '·' }) : null,
       run.model ? h('span', { class: 'card-model', text: run.model }) : null,
-      run._meta?.bytes ? h('span', { text: '·' }) : null,
-      run._meta?.bytes ? h('span', { text: `${fmtBytes(run._meta.bytes)} of media` }) : null,
     ),
     run.summary ? h('p', { class: 'detail-summary', text: run.summary }) : null,
     (run.tags ?? []).length
       ? h('div', { class: 'detail-tags' }, run.tags.map((tag) => h('span', { class: 'tag', text: tag })))
       : null,
-    actions,
+    h('div', { class: 'detail-actions' }, copyLink()),
   );
-
-  if (run._meta?.warnings?.length) {
-    body.append(h('div', { class: 'section' },
-      h('h3', { text: 'warnings' }),
-      h('div', { class: 'notice' }, h('div', {}, run._meta.warnings.map((w) => h('div', { text: `⚠ ${w}` })))),
-    ));
-  }
 
   if (run.metrics?.length) {
     body.append(h('div', { class: 'section' },
@@ -998,25 +976,43 @@ function renderDetail(run) {
       h('div', { class: 'charts' }, charts)));
   }
 
-  if (Object.keys(run.environment ?? {}).length) {
+  if (primary.length) {
     body.append(h('div', { class: 'section' },
-      h('h3', { text: 'environment' }),
-      h('dl', { class: 'kv' }, Object.entries(run.environment).flatMap(([key, value]) => [
-        h('dt', { text: key.replace(/_/g, ' ') }),
-        h('dd', { text: Array.isArray(value) ? value.join(', ') : String(value) }),
-      ]))));
+      h('h3', { text: 'result' }),
+      h('div', { class: 'gallery' }, primary.map((item, index) => renderMedia(run, item, index)))));
   }
 
-  if (media.length) {
-    body.append(h('div', { class: 'section' },
-      h('h3', { text: `media · ${media.length}` }),
-      h('div', { class: 'gallery' }, media.map((item, index) => renderMedia(run, item, index)))));
-  }
-
-  if (run.notes) {
-    body.append(h('div', { class: 'section' },
-      h('h3', { text: 'notes' }),
-      h('div', { class: 'prose', html: md(run.notes, run._meta?.base ?? '') })));
+  if (hasAudit) {
+    const trail = h('details', { class: 'audit', open: primary.length === 0 || undefined },
+      h('summary', {},
+        h('span', { text: 'Audit trail' }),
+        h('span', { class: 'audit-hint', text: 'prompt · transcript · environment' })),
+    );
+    if (warnings.length) {
+      trail.append(h('div', { class: 'section' },
+        h('h3', { text: 'warnings' }),
+        h('div', { class: 'notice' }, h('div', {}, warnings.map((w) => h('div', { text: `⚠ ${w}` }))))));
+    }
+    if (envEntries.length) {
+      trail.append(h('div', { class: 'section' },
+        h('h3', { text: 'environment' }),
+        h('dl', { class: 'kv' }, envEntries.flatMap(([key, value]) => [
+          h('dt', { text: key.replace(/_/g, ' ') }),
+          h('dd', { text: Array.isArray(value) ? value.join(', ') : String(value) }),
+        ]))));
+    }
+    if (run.notes) {
+      trail.append(h('div', { class: 'section' },
+        h('h3', { text: 'notes' }),
+        h('div', { class: 'prose', html: md(run.notes, run._meta?.base ?? '') })));
+    }
+    if (auditMedia.length) {
+      trail.append(h('div', { class: 'section' },
+        h('h3', { text: `files · ${auditMedia.length}` }),
+        h('div', { class: 'gallery' }, auditMedia.map((item, index) => renderMedia(run, item, primary.length + index)))));
+    }
+    trail.append(auditButtons);
+    body.append(trail);
   }
 
   if (run.links?.length) {

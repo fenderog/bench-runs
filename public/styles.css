@@ -409,6 +409,24 @@ main { max-width: var(--maxw); margin: 0 auto; padding: var(--pad); }
 .detail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 
 .section { margin-top: 34px; }
+
+/* audit trail — collapsed run documentation */
+.audit {
+  margin-top: 34px; border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--bg-soft); padding: 2px 18px 4px;
+}
+.audit > summary {
+  cursor: pointer; padding: 13px 0; display: flex; gap: 10px; align-items: baseline;
+  list-style: none; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .09em; font-weight: 600; color: var(--muted);
+}
+.audit > summary::-webkit-details-marker { display: none; }
+.audit > summary::before { content: '▸'; color: var(--faint); transition: transform .15s; }
+.audit[open] > summary::before { transform: rotate(90deg); }
+.audit > summary:hover { color: var(--text); }
+.audit-hint { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); }
+.audit .section { margin-top: 22px; }
+.audit .detail-actions { margin: 20px 0 14px; }
 .section > h3 {
   font-size: 12px; text-transform: uppercase; letter-spacing: .09em;
   color: var(--faint); margin-bottom: 14px; font-weight: 600;

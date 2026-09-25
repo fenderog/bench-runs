@@ -67,7 +67,7 @@
     {
       "type": "playable",
       "src": "media/hello-world.html",
-      "caption": "Generated hello-world site — click to load",
+      "caption": "Generated hello-world site",
       "wide": true
     },
     {
