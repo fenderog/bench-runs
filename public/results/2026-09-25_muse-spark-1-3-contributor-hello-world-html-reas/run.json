@@ -65,9 +65,10 @@
       "caption": "Full transcript — prompt, 13 reasoning block(s), 12 tool call(s) and the final output"
     },
     {
-      "type": "file",
+      "type": "playable",
       "src": "media/hello-world.html",
-      "label": "Task artefact — generated hello-world site"
+      "caption": "Generated hello-world site — click to load",
+      "wide": true
     },
     {
       "type": "file",
