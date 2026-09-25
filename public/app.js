@@ -520,7 +520,6 @@ function renderChips() {
   clear(host);
 
   const groups = [
-    { key: 'benchmark', label: 'bench' },
     { key: 'model', label: 'model', mono: true },
     { key: 'tag', label: 'tag' },
   ];

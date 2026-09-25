@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-09-25T22:42:44.173Z",
+  "generatedAt": "2026-09-25T22:45:19.609Z",
   "count": 2,
   "runs": [
     {
@@ -10,12 +10,7 @@
       "benchmark": "voxel-character-html-js",
       "date": "2026-09-25T22:23:34.428Z",
       "status": "complete",
-      "tags": [
-        "voxel",
-        "html",
-        "canvas",
-        "interactive"
-      ],
+      "tags": [],
       "summary": "gpt-6-sol (pi, high reasoning) generated a self-contained, interactive HTML Canvas voxel explorer with rotation, zoom and jacket palettes. The JavaScript passed a syntax check and the page rendered in headless Chrome; manual task completion was 1/1.",
       "metrics": [
         {
@@ -142,7 +137,7 @@
       "_meta": {
         "dir": "2026-09-25_gpt-6-sol-voxel-character-html-js",
         "base": "results/2026-09-25_gpt-6-sol-voxel-character-html-js/",
-        "version": "xntbnl",
+        "version": "ewob7b",
         "preview": "results/2026-09-25_gpt-6-sol-voxel-character-html-js/media/screenshot.png",
         "mediaCount": 4,
         "bytes": 2079847,
@@ -156,11 +151,7 @@
       "benchmark": "hello-world",
       "date": "2026-09-25T22:04:07.824Z",
       "status": "running",
-      "tags": [
-        "html",
-        "hello-world",
-        "muse-spark-1.3-contributor"
-      ],
+      "tags": [],
       "summary": "muse-spark-1.3-contributor via pi 0.87.1 generated a single-file hello-world HTML site. The file write is evidenced in-transcript; the capture was taken mid-run so status stays running.",
       "metrics": [
         {
@@ -260,7 +251,7 @@
       "_meta": {
         "dir": "2026-09-25_muse-spark-1-3-contributor-hello-world-html-reas",
         "base": "results/2026-09-25_muse-spark-1-3-contributor-hello-world-html-reas/",
-        "version": "x4q73t",
+        "version": "3sw93z",
         "preview": null,
         "mediaCount": 3,
         "bytes": 518483,
