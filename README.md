@@ -202,6 +202,61 @@ For a custom interface, write your own `glue` module exporting
 
 ---
 
+## Capturing a run from a harness
+
+This repo bundles a [pi skill](skills/fe-capture-benchmark-run/SKILL.md) that turns a
+raw session or API log from **any** harness into a result folder, including the
+original prompt, every reasoning block, all tool calls and the final output.
+
+```bash
+npm run skill:install          # publish the skill to ~/.pi/agent/skills/
+```
+
+Then, from anywhere:
+
+```bash
+node ~/.pi/agent/skills/fe-capture-benchmark-run/scripts/capture-run.mjs \
+  --from ~/.pi/agent/sessions/--Users-me-proj--/2026-06-21T10-12-00Z_abc.jsonl \
+  --title "Llama 3.1 8B — GSM8K, reasoning=high" \
+  --model meta-llama/Llama-3.1-8B-Instruct \
+  --harness "pi 0.4.2" --benchmark GSM8K --reasoning-mode "extended thinking, effort=high" \
+  --repo /path/to/bench-runs
+
+node ~/.pi/agent/skills/fe-capture-benchmark-run/scripts/verify-run.mjs \
+  public/results/<run-id>
+```
+
+It writes `run.json`, `transcript.jsonl` (canonical, machine-readable),
+`transcript.md` (prompt + reasoning + tool I/O + output, human-readable),
+`prompt.md`, and copies the untouched source log to `media/raw/`.
+
+Supported adapters, verified against real session files: **pi**, **Claude Code**,
+**Codex CLI/Desktop**, **OpenAI** Chat Completions + Responses (including
+streaming), **Anthropic Messages**, and a generic JSONL/`{request,response}` shape.
+`--format auto` sniffs which one you have. The format is specified in
+[`references/transcript-format.md`](skills/fe-capture-benchmark-run/references/transcript-format.md);
+per-harness paths and gotchas are in
+[`references/harness-recipes.md`](skills/fe-capture-benchmark-run/references/harness-recipes.md).
+
+Two things the skill is deliberately pedantic about:
+
+- **Reasoning that a provider withholds is still recorded.** pi and Claude Code
+  return thinking blocks with empty prose next to an encrypted `signature`;
+  Codex returns `encrypted_content`. The run gets an `assistant.thinking` event
+  flagged `encrypted: true` and `reasoning.visible: false`, and the UI says so
+  rather than implying the model thought nothing.
+- **The verifier fails the run** if `prompt.md` and the `original_prompt` event
+disagree, if `seq` is not gapless, if a tool call has no `call_id`, or if a
+credential pattern appears anywhere. It warns on absolute home paths.
+
+Validate:
+
+```bash
+npm run skill:verify -- public/results/<run-id> --strict
+```
+
+---
+
 ## Deployment
 
 1. Push this repo to GitHub.
@@ -241,7 +296,12 @@ public/                         ← the deployed site
 └── results/<run-id>/run.json …  your results
 scripts/
 ├── build-manifest.mjs          scan results → manifest (+ warnings)
-├── new-run.mjs                 scaffold a run folder
+├── new-run.mjs                 scaffold a run folder by hand
 ├── serve.mjs                   dependency-free static server
+├── install-skill.mjs           publish the capture skill to ~/.pi/agent/skills
 └── smoke-test.mjs              headless-Chrome end-to-end check of the UI
+skills/fe-capture-benchmark-run/
+├── SKILL.md                    capture a run from any harness
+├── references/                 transcript schema + per-harness recipes
+└── scripts/                    adapters, capture, verify, render
 ```

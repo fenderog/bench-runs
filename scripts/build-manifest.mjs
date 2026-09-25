@@ -182,7 +182,7 @@ async function processMedia(item, dirAbs, base, runId, fingerprint) {
     return out;
   }
 
-  if (['markdown', 'code', 'table'].includes(item.type) && !str(item.text) && src) {
+  if (['markdown', 'code', 'table'].includes(item.type) && !item.lazy && !str(item.text) && src) {
     const text = await readTextIfSmall(path.join(dirAbs, src));
     if (text !== null) {
       out.text = text;

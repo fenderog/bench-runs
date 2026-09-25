@@ -10,7 +10,9 @@
     "test": "node scripts/smoke-test.mjs",
     "dev": "node scripts/build-manifest.mjs && node scripts/serve.mjs",
     "new": "node scripts/new-run.mjs",
-    "build": "node scripts/build-manifest.mjs"
+    "build": "node scripts/build-manifest.mjs",
+    "skill:install": "node scripts/install-skill.mjs",
+    "skill:verify": "node skills/fe-capture-benchmark-run/scripts/verify-run.mjs"
   },
   "engines": {
     "node": ">=18"

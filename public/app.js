@@ -844,18 +844,50 @@ function renderTable(run, item, index) {
   );
 }
 
+/**
+ * Markdown/code blocks are usually inlined into the manifest by the builder, but
+ * large files (transcripts) are marked `lazy` and fetched on demand so the
+ * manifest stays small enough to poll.
+ */
 function renderTextBlock(run, item, index) {
-  const text = item.text ?? '';
-  if (item.type === 'markdown') {
-    return h('figure', { class: 'media-block wide' },
-      h('div', { class: 'prose', style: { padding: '16px 18px' }, html: md(text, run._meta?.base ?? '') }),
-      caption(run, item, index),
-    );
+  const isMarkdown = item.type === 'markdown';
+  const body = h('div', {
+    class: 'prose',
+    style: { padding: isMarkdown ? '16px 18px' : '14px 16px' },
+  });
+
+  const paint = (text) => {
+    clear(body);
+    if (isMarkdown) {
+      body.innerHTML = md(text, run._meta?.base ?? '');
+    } else {
+      body.append(h('pre', { style: { margin: '0' } }, h('code', { text })));
+    }
+  };
+
+  if (typeof item.text === 'string') {
+    paint(item.text);
+  } else if (item.src && !item.missing) {
+    body.append(h('div', { class: 'media-loading', text: 'loading…' }));
+    const url = bust(item.src, run._meta?.version);
+    fetch(url, { cache: 'no-cache' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
+      })
+      .then((text) => {
+        // Only paint if this block is still on screen for the same run.
+        if (body.isConnected) paint(text);
+      })
+      .catch((err) => {
+        clear(body);
+        body.append(h('div', { class: 'media-missing', text: `⚠ could not load ${item.src} (${err.message})` }));
+      });
+  } else {
+    body.append(h('div', { class: 'media-missing', text: '⚠ no content' }));
   }
-  return h('figure', { class: 'media-block wide' },
-    h('div', { class: 'prose', style: { padding: '14px 16px' } }, h('pre', { style: { margin: '0' } }, h('code', { text }))),
-    caption(run, item, index),
-  );
+
+  return h('figure', { class: 'media-block wide' }, body, caption(run, item, index));
 }
 
 function renderFile(run, item, index) {

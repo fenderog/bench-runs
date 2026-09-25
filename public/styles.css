@@ -558,3 +558,9 @@ tbody tr:hover td { background: var(--surface-2); }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .card:hover { transform: none; }
 }
+
+/* lazy-loaded text blocks (transcripts) */
+.media-loading {
+  padding: 22px; text-align: center; color: var(--faint);
+  font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase;
+}
