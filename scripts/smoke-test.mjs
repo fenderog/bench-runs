@@ -200,7 +200,9 @@ async function main() {
       };
     `);
     check('one card per run', grid.cards === grid.expected, `got ${grid.cards}, expected ${grid.expected}`);
-    check('filter chips rendered', grid.chips >= 3, `got ${grid.chips}`);
+    // Bench chips were removed and runs are currently tagless, so only the
+    // model chips may be present — the point is the filter row renders.
+    check('filter chips rendered', grid.chips >= 1, `got ${grid.chips}`);
     check('result counter filled', /\d+ of \d+/.test(grid.count), grid.count);
     check('live indicator reports runs', /live/.test(grid.live), grid.live);
     check('card thumbnails loaded', grid.thumbsBroken === 0, `${grid.thumbsBroken}/${grid.thumbs} broken`);
