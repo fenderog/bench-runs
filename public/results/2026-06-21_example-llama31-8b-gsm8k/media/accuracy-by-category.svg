@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450" font-family="-apple-system, Segoe UI, Inter, Arial, sans-serif">
+  <rect width="800" height="450" fill="#14171d"/>
+  <text x="40" y="52" fill="#e7e9ee" font-size="21" font-weight="600">Accuracy by category</text>
+  <text x="40" y="76" fill="#6b7383" font-size="13">GSM8K · 1,319 items · greedy decoding</text>
+
+  <g font-size="13">
+    <text x="40" y="132" fill="#98a1b0">Arithmetic</text>
+    <rect x="170" y="118" width="520" height="18" rx="5" fill="#1a1e26"/>
+    <rect x="170" y="118" width="471" height="18" rx="5" fill="#7c9cff"/>
+    <text x="652" y="132" fill="#98a1b0" font-size="12">90.6%</text>
+
+    <text x="40" y="176" fill="#98a1b0">Multi-step word</text>
+    <rect x="170" y="162" width="520" height="18" rx="5" fill="#1a1e26"/>
+    <rect x="170" y="162" width="432" height="18" rx="5" fill="#7c9cff"/>
+    <text x="652" y="176" fill="#98a1b0" font-size="12">83.1%</text>
+
+    <text x="40" y="220" fill="#98a1b0">Unit conversion</text>
+    <rect x="170" y="206" width="520" height="18" rx="5" fill="#1a1e26"/>
+    <rect x="170" y="206" width="391" height="18" rx="5" fill="#7c9cff"/>
+    <text x="652" y="220" fill="#98a1b0" font-size="12">75.2%</text>
+
+    <text x="40" y="264" fill="#98a1b0">Rate &amp; proportion</text>
+    <rect x="170" y="250" width="520" height="18" rx="5" fill="#1a1e26"/>
+    <rect x="170" y="250" width="356" height="18" rx="5" fill="#7c9cff"/>
+    <text x="652" y="264" fill="#98a1b0" font-size="12">68.4%</text>
+
+    <text x="40" y="308" fill="#98a1b0">Geometry</text>
+    <rect x="170" y="294" width="520" height="18" rx="5" fill="#1a1e26"/>
+    <rect x="170" y="294" width="298" height="18" rx="5" fill="#7c9cff"/>
+    <text x="652" y="308" fill="#98a1b0" font-size="12">57.3%</text>
+
+    <text x="40" y="352" fill="#98a1b0">Diagrams</text>
+    <rect x="170" y="338" width="520" height="18" rx="5" fill="#1a1e26"/>
+    <rect x="170" y="338" width="221" height="18" rx="5" fill="#7c9cff"/>
+    <text x="652" y="352" fill="#98a1b0" font-size="12">42.5%</text>
+  </g>
+
+  <line x1="170" y1="386" x2="690" y2="386" stroke="#2a2f3a"/>
+  <g fill="#6b7383" font-size="11" text-anchor="middle">
+    <text x="170" y="404">0%</text>
+    <text x="300" y="404">25%</text>
+    <text x="430" y="404">50%</text>
+    <text x="560" y="404">75%</text>
+    <text x="690" y="404">100%</text>
+  </g>
+  <text x="40" y="426" fill="#6b7383" font-size="11">mean 69.6% · 95% CI ±1.4</text>
+</svg>

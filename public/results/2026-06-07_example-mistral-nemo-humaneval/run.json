@@ -1,0 +1,43 @@
+{
+  "id": "2026-06-07_example-mistral-nemo-humaneval",
+  "title": "Mistral NeMo 12B — HumanEval (running)",
+  "model": "mistralai/Mistral-Nemo-Instruct-2407",
+  "benchmark": "HumanEval+",
+  "date": "2026-06-07T09:05:00Z",
+  "status": "running",
+  "tags": ["code", "pass@1", "in-progress"],
+  "summary": "Pass@1 evaluation in progress — 132 of 164 tasks scored so far. Numbers below are preliminary and will change.",
+  "metrics": {
+    "pass_at_1": { "value": 0.671, "unit": "%", "hint": "132 / 164 tasks scored" },
+    "progress": { "value": 80.5, "unit": "%" },
+    "avg_latency": { "value": 2140, "unit": "ms" }
+  },
+  "charts": [
+    {
+      "title": "Pass@1 as tasks accumulate",
+      "subtitle": "preliminary — the curve is still moving",
+      "type": "line",
+      "x": ["0", "25", "50", "75", "100", "125", "132"],
+      "yLabel": "%",
+      "yMin": 0,
+      "yMax": 100,
+      "series": [
+        { "name": "pass@1", "values": [0, 64, 68, 66.7, 67, 67.2, 67.1], "color": "#f0b849" }
+      ]
+    }
+  ],
+  "environment": {
+    "gpu": "NVIDIA RTX 4090 (24 GB)",
+    "backend": "TensorRT-LLM 0.14",
+    "quantization": "fp16",
+    "sandbox": "docker, network disabled, 5 s per test"
+  },
+  "media": [
+    {
+      "type": "markdown",
+      "caption": "Current status",
+      "text": "Run started **2026-06-07 09:05 UTC**, ETA two hours. Results are appended every 100 tasks, so this page updates on its own — no need to reload."
+    }
+  ],
+  "notes": "Partial results. Do not cite until the run reports `status: complete`."
+}

@@ -1,0 +1,7 @@
+category,items,correct,accuracy,avg_latency_ms
+Arithmetic,310,281,0.906,540
+Multi-step word,402,334,0.831,742
+Unit conversion,148,111,0.752,618
+Rate & proportion,196,134,0.684,801
+Geometry,161,92,0.573,915
+Diagrams,102,43,0.425,1180

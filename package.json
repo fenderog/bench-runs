@@ -1,0 +1,18 @@
+{
+  "name": "llm-bench-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A clean static viewer for LLM benchmark runs. Drop a run folder in, push, and the site updates itself.",
+  "scripts": {
+    "manifest": "node scripts/build-manifest.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test": "node scripts/smoke-test.mjs",
+    "dev": "node scripts/build-manifest.mjs && node scripts/serve.mjs",
+    "new": "node scripts/new-run.mjs",
+    "build": "node scripts/build-manifest.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
