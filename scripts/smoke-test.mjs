@@ -211,6 +211,7 @@ async function main() {
         title: document.querySelector('#runView h1')?.textContent,
         summary: document.querySelector('.run-summary')?.textContent.length,
         metrics: document.querySelectorAll('.metric').length,
+        metricsOpen: document.querySelector('.disclosure-metrics')?.open,
         charts: document.querySelectorAll('.chart svg').length,
         media: document.querySelectorAll('.media-block').length,
         videos: document.querySelectorAll('video').length,
@@ -228,20 +229,26 @@ async function main() {
     check('title rendered', detail.title?.length > 3, String(detail.title));
     check('summary rendered', detail.summary > 40, `${detail.summary} characters`);
     check('metrics rendered', detail.metrics >= 3, `got ${detail.metrics}`);
+    check('metrics collapsed by default', detail.metricsOpen === false, String(detail.metricsOpen));
     if (detail.charts > 0) check('charts rendered as svg', detail.charts >= 1, `got ${detail.charts}`);
     if (detail.videos > 0) check('video element present', detail.videos >= 1, `got ${detail.videos}`);
     if (detail.tables > 0) check('csv table rendered', detail.tables >= 1, `got ${detail.tables}`);
     check('playable placeholder present', detail.playables >= 1, `got ${detail.playables}`);
     check('media images loaded', detail.imagesBroken === 0, `${detail.imagesBroken}/${detail.images} broken`);
-    check('prompt/notes disclosure present', detail.disclosure >= 1, `got ${detail.disclosure}`);
+    check('prompt/notes disclosure present', detail.disclosure >= 2, `got ${detail.disclosure}`);
     check('notes prose rendered', detail.prose >= 1, `got ${detail.prose}`);
     check('markdown produced content', detail.proseText > 50, `${detail.proseText} characters of prose`);
     check('play button icon drawn', detail.playIcon > 8, String(detail.playIcon));
 
     const metrics = await cdp.eval(`
-      return [...document.querySelectorAll('.metric')].map(m => m.querySelector('.metric-label').textContent + '=' + m.querySelector('.metric-value').textContent.trim());
+      document.querySelector('.disclosure-metrics').open = true;
+      await new Promise(r => setTimeout(r, 300));
+      return [...document.querySelectorAll('.metric')].map(m => m.querySelector('dt').textContent + '=' + m.querySelector('dd').textContent.trim());
     `);
     check('metric units formatted', metrics.some((m) => m.includes('%')), metrics.join(' '));
+    check('metric hints kept as tooltips', await cdp.eval(`
+      return [...document.querySelectorAll('.metric')].filter(m => m.title).length;
+    `) >= 1);
     console.log(`    metrics: ${metrics.join(', ')}`);
     await cdp.shot('02-run-top');
     await cdp.eval(`document.querySelector('.gallery').scrollIntoView(); return 1;`);
@@ -250,7 +257,7 @@ async function main() {
 
     // ── disclosure expands to the logs ──────────────────────────────────────
     const disclosure = await cdp.eval(`
-      const d = document.querySelector('.disclosure');
+      const d = document.querySelector('.disclosure-logs');
       d.open = true;
       await new Promise(r => setTimeout(r, 500));
       return {

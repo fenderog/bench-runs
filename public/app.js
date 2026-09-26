@@ -535,18 +535,10 @@ function renderDetail(run) {
     ),
   );
 
-  if (run.metrics?.length) {
+  if (artifacts.length) {
     host.append(h('section', { class: 'section' },
-      h('h2', { class: 'section-title', text: 'Metrics' }),
-      h('div', { class: 'metrics' }, run.metrics.map((m) =>
-        h('div', { class: 'metric' },
-          h('div', { class: 'metric-label', text: m.label }),
-          h('div', { class: 'metric-value' },
-            fmtNumber(m.value, m.unit),
-            m.unit ? h('span', { class: 'unit', text: m.unit === '%' ? '%' : ' ' + m.unit }) : null),
-          m.hint ? h('div', { class: 'metric-hint', text: m.hint }) : null,
-        ))),
-    ));
+      h('h2', { class: 'section-title', text: 'Artifacts' }),
+      h('div', { class: 'gallery' }, artifacts.map((item, i) => renderMedia(run, item, i)))));
   }
 
   const charts = (run.charts ?? []).map(renderChart).filter(Boolean);
@@ -556,10 +548,22 @@ function renderDetail(run) {
       h('div', { class: 'gallery' }, charts)));
   }
 
-  if (artifacts.length) {
+  // Metrics are provenance, not the headline: collapsed by default, and only a
+  // label and a value on screen — the longer explanation behind each number
+  // rides along as a tooltip instead of a paragraph in every cell.
+  if (run.metrics?.length) {
     host.append(h('section', { class: 'section' },
-      h('h2', { class: 'section-title', text: 'Artifacts' }),
-      h('div', { class: 'gallery' }, artifacts.map((item, i) => renderMedia(run, item, i)))));
+      h('details', { class: 'disclosure disclosure-metrics' },
+        h('summary', {},
+          h('span', { text: 'Metrics' }),
+          h('span', { class: 'summary-count', text: String(run.metrics.length) })),
+        h('div', { class: 'disclosure-content' },
+          h('dl', { class: 'metrics' }, run.metrics.map((m) =>
+            h('div', { class: 'metric', title: m.hint || null },
+              h('dt', { text: m.label }),
+              h('dd', {},
+                fmtNumber(m.value, m.unit),
+                m.unit ? h('span', { class: 'unit', text: m.unit === '%' ? '%' : ' ' + m.unit }) : null))))))));
   }
 
   if (env.length || warnings.length || run.notes || logs.length) {
@@ -582,8 +586,8 @@ function renderDetail(run) {
     }
 
     host.append(h('section', { class: 'section' },
-      h('details', { class: 'disclosure' },
-        h('summary', { text: `Prompt, transcript, environment${env.length ? ' & notes' : ''}` }),
+      h('details', { class: 'disclosure disclosure-logs' },
+        h('summary', {}, h('span', { text: `Prompt, transcript, environment${env.length ? ' & notes' : ''}` })),
         content)));
   }
 
