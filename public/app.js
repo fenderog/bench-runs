@@ -14,7 +14,7 @@ const CFG = Object.freeze({
   ...(window.BENCH_CONFIG || {}),
 });
 
-const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const CHART_COLORS = ['#c66a37', '#658571', '#b59956', '#cb6260', '#9389ac', '#5793a1'];
 
 /* ── DOM helpers ──────────────────────────────────────────────────────────── */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -365,6 +365,7 @@ function setLive(kind, text) {
 
 function toast(message, ms = 4200) {
   const node = $('#toast');
+  ($('#detail').open ? $('#detail') : document.body).append(node);
   node.textContent = message;
   node.hidden = false;
   requestAnimationFrame(() => node.classList.add('is-visible'));
@@ -423,6 +424,7 @@ async function load({ manual = false, quiet = false } = {}) {
       updateStats();
       renderChips();
       renderActiveView();
+      if (first) route();
     } else {
       updateFooter();
     }
@@ -463,25 +465,39 @@ function updateStats() {
   const models = new Set(runs.map((r) => r.model).filter(Boolean));
   $('#statModels').textContent = models.size ? String(models.size) : '0';
 
-  let totalAcc = 0;
-  let accCount = 0;
-  for (const r of runs) {
-    const accMetric = (r.metrics ?? []).find((m) => /acc|score|pass|success|completion/i.test(m.label));
-    if (accMetric && Number.isFinite(Number(accMetric.value))) {
-      let val = Number(accMetric.value);
-      if (val <= 1 && accMetric.unit === '%') val *= 100;
-      else if (val <= 1) val *= 100;
-      totalAcc += val;
-      accCount++;
-    }
+  $('#statArtifacts').textContent = String(runs.reduce((sum, run) => sum + (run.media?.length ?? 0), 0));
+  const artifacts = runs.flatMap((run) => run.media ?? []);
+  const groups = [
+    { key: 'interactive', label: 'interactive', count: artifacts.filter((item) => item.type === 'playable').length },
+    { key: 'visual', label: 'visual', count: artifacts.filter((item) => ['image', 'video', 'audio', 'embed'].includes(item.type)).length },
+    { key: 'record', label: 'records', count: artifacts.filter((item) => !['playable', 'image', 'video', 'audio', 'embed'].includes(item.type)).length },
+  ];
+  const distribution = clear($('#artifactDistribution'));
+  const legend = clear($('#artifactLegend'));
+  for (const { key, label, count } of groups) {
+    if (!count) continue;
+    distribution.append(h('span', { class: `distribution-${key}`, style: { flex: String(count) } }));
+    legend.append(h('span', { class: `legend-${key}`, text: `${count} ${label}` }));
   }
-  $('#statSuccess').textContent = accCount > 0 ? `${Math.round(totalAcc / accCount)}%` : '—';
+  if (!artifacts.length) legend.append(h('span', { text: 'No artifacts recorded yet' }));
 
   const sortedDates = runs
     .map((r) => r.date)
     .filter(Boolean)
     .sort((a, b) => Date.parse(b) - Date.parse(a));
   $('#statLatest').textContent = sortedDates.length ? fmtDate(sortedDates[0]) : '—';
+}
+
+const metricLabel = (label) => String(label).replace(/_/g, ' ');
+
+function resetFilters() {
+  for (const set of Object.values(state.filters)) set.clear();
+  state.query = '';
+  clearTimeout(searchTimer);
+  $('#search').value = '';
+  $('#searchClear').hidden = true;
+  renderChips();
+  renderActiveView();
 }
 
 /* ── filtering & sorting ─────────────────────────────────────────────────── */
@@ -568,19 +584,7 @@ function renderChips() {
     host.append(h('div', { class: 'chip-group' }, h('span', { class: 'chip-label', text: group.label }), chips));
   }
 
-  const anyActive = Object.values(state.filters).some((s) => s.size);
-  if (anyActive) {
-    host.append(h('button', {
-      type: 'button', class: 'chip chip-clear', onclick: () => {
-        for (const set of Object.values(state.filters)) set.clear();
-        state.query = '';
-        $('#search').value = '';
-        $('#searchClear').hidden = true;
-        renderChips();
-        renderActiveView();
-      },
-    }, 'Clear all'));
-  }
+
 }
 
 /* ── media helpers ────────────────────────────────────────────────────────── */
@@ -629,7 +633,13 @@ function inferMediaTag(run) {
 
 /* ── render: card ─────────────────────────────────────────────────────────── */
 function renderCard(run) {
-  const metrics = (run.metrics ?? []).slice(0, 3);
+  const allMetrics = run.metrics ?? [];
+  const preferred = ['task_completion', 'success', 'accuracy', 'duration', 'tool_calls'];
+  const ranked = [...allMetrics].sort((a, b) => {
+    const rank = (m) => { const i = preferred.indexOf(m.label); return i < 0 ? preferred.length : i; };
+    return rank(a) - rank(b);
+  });
+  const metrics = ranked.slice(0, 3);
   const mediaTag = inferMediaTag(run);
 
   const card = h('a', {
@@ -641,8 +651,10 @@ function renderCard(run) {
     h('div', { class: 'card-thumb' },
       cardThumb(run),
       h('div', { class: 'card-overlays' },
-        mediaTag ? h('span', { class: 'badge', text: mediaTag }) : null,
-        state.newIds.has(run.id) ? h('span', { class: 'badge badge-new', text: 'NEW' }) : null,
+        h('div', { class: 'card-overlays-right' },
+          mediaTag ? h('span', { class: 'badge', text: mediaTag }) : null,
+          state.newIds.has(run.id) ? h('span', { class: 'badge badge-new', text: 'NEW' }) : null,
+        ),
       ),
     ),
     h('div', { class: 'card-body' },
@@ -660,9 +672,10 @@ function renderCard(run) {
         ? h('div', { class: 'card-metrics' }, metrics.map((metric) =>
           h('div', { class: 'card-metric' },
             h('b', { text: fmtNumber(metric.value, metric.unit) + (metric.unit ? (metric.unit === '%' ? '%' : ' ' + metric.unit) : '') }),
-            h('span', { text: metric.label }))))
+            h('span', { text: metricLabel(metric.label) }))))
         : null,
     ),
+    h('div', { class: 'card-footer' }, h('span', { text: `${(run.media ?? []).length} artifacts` }), h('span', { class: 'card-cta', text: 'Explore run ↗' })),
   );
   return card;
 }
@@ -689,11 +702,11 @@ function renderTableRow(run) {
   const durationMetric = (run.metrics ?? []).find((m) => m.label === 'duration');
 
   const tr = h('tr', {
-    onclick: () => { location.hash = `#/run/${encodeURIComponent(run.id)}`; },
+    onclick: (event) => { if (!event.target.closest('a')) location.hash = `#/run/${encodeURIComponent(run.id)}`; },
   },
     h('td', {}, h('div', { class: 'table-thumb-cell' }, thumbNode)),
     h('td', { class: 'table-title-cell' },
-      h('strong', { text: run.title }),
+      h('a', { href: `#/run/${encodeURIComponent(run.id)}`, text: run.title }),
       h('small', { text: run.benchmark || '—' }),
     ),
     h('td', {}, h('span', { class: 'card-model-pill', text: run.model || '—' })),
@@ -741,7 +754,9 @@ function renderActiveView() {
 
   const hasRuns = state.filtered.length > 0;
   $('#empty').hidden = hasRuns;
-  $('#count').textContent = `${state.filtered.length} of ${state.runs.length}`;
+  $('#count').textContent = `${state.filtered.length} of ${state.runs.length} runs`;
+  $('#resetFilters').hidden = !state.query && !Object.values(state.filters).some((set) => set.size);
+  $('#emptyReset').hidden = !state.runs.length;
 
   if (!hasRuns) {
     $('#emptyHint').textContent = state.runs.length
@@ -783,12 +798,12 @@ function openLightbox(src, alt) {
   const img = $('#lightboxImg');
   img.src = src;
   img.alt = alt || '';
-  box.hidden = false;
+  box.showModal();
   document.body.style.overflow = 'hidden';
 }
 
 function closeLightbox() {
-  $('#lightbox').hidden = true;
+  $('#lightbox').close();
   $('#lightboxImg').src = '';
   document.body.style.overflow = '';
 }
@@ -808,10 +823,13 @@ function renderImage(run, item, index) {
   const src = bust(item.src, run._meta?.version);
   const img = h('img', {
     src, alt: item.alt || item.caption || `${run.title} image ${index + 1}`,
-    decoding: 'async', onclick: () => openLightbox(src, item.alt || item.caption || ''),
+    decoding: 'async',
   });
   return h('figure', { class: 'media-block' + (item.wide ? ' wide' : '') },
-    item.missing ? h('div', { class: 'media-missing' }, h('div', { text: '⚠ file missing' }), h('div', { text: item.src })) : h('div', { class: 'media-frame' }, img),
+    item.missing ? h('div', { class: 'media-missing' }, h('div', { text: '⚠ file missing' }), h('div', { text: item.src })) : h('div', { class: 'media-frame' }, h('button', {
+      type: 'button', class: 'image-preview', 'aria-label': `Enlarge ${img.alt}`,
+      onclick: () => openLightbox(src, img.alt),
+    }, img)),
     caption(run, item, index));
 }
 
@@ -1046,7 +1064,7 @@ function renderDetail(run) {
       h('span', { class: 'dot', text: '·' }),
       h('span', { text: fmtDate(run.date) }),
     ),
-    h('h2', { class: 'detail-title', text: run.title }),
+    h('h2', { class: 'detail-title', id: 'detailTitle', text: run.title }),
     run.summary ? h('div', { class: 'detail-summary-card', text: run.summary }) : null,
     (run.tags ?? []).length
       ? h('div', { class: 'detail-tags' }, run.tags.map((tag) => h('span', { class: 'tag', text: tag })))
@@ -1075,11 +1093,11 @@ function renderDetail(run) {
   if (run.metrics?.length) {
     body.append(h('div', { class: 'section' },
       h('div', { class: 'section-header' },
-        h('h3', { text: 'Telemetry Metrics' }),
+        h('h3', { text: 'Performance at a glance' }),
       ),
       h('div', { class: 'tiles' }, run.metrics.map((metric) =>
         h('div', { class: 'tile' },
-          h('div', { class: 'tile-label', text: metric.label }),
+          h('div', { class: 'tile-label', text: metricLabel(metric.label) }),
           h('div', { class: 'tile-value' },
             h('span', { text: fmtNumber(metric.value, metric.unit) }),
             metric.unit && metric.unit !== '%' ? h('span', { class: 'tile-unit', text: metric.unit })
@@ -1093,14 +1111,14 @@ function renderDetail(run) {
   const charts = (run.charts ?? []).map(renderChart).filter(Boolean);
   if (charts.length) {
     body.append(h('div', { class: 'section' },
-      h('div', { class: 'section-header' }, h('h3', { text: 'Performance Charts' })),
+      h('div', { class: 'section-header' }, h('h3', { text: 'Performance charts' })),
       h('div', { class: 'charts' }, charts)));
   }
 
   // Primary Visuals / Artifacts
   if (primary.length) {
     body.append(h('div', { class: 'section' },
-      h('div', { class: 'section-header' }, h('h3', { text: 'Artifacts & Execution Output' })),
+      h('div', { class: 'section-header' }, h('h3', { text: 'Artifacts & output' })),
       h('div', { class: 'gallery' }, primary.map((item, index) => renderMedia(run, item, index)))));
   }
 
@@ -1109,8 +1127,8 @@ function renderDetail(run) {
     const summaryHeader = h('summary', {},
       h('span', { class: 'audit-title' },
         h('span', { html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>' }),
-        h('span', { text: 'Audit Trail & Reproducibility Spec' })),
-      h('span', { class: 'audit-hint', text: 'Prompt · Transcript · Hardware · Environment' }),
+        h('span', { text: 'Behind the result' })),
+      h('span', { class: 'audit-hint', text: 'Prompts, transcripts & environment' }),
     );
 
     const auditContent = h('div', { class: 'audit-content' });
@@ -1194,6 +1212,9 @@ dialog.addEventListener('close', () => {
 
 $('#closeBtn').addEventListener('click', () => { location.hash = '#/'; });
 $('#lightboxClose').addEventListener('click', closeLightbox);
+$('#lightbox').addEventListener('close', () => { document.body.style.overflow = ''; });
+$('#resetFilters').addEventListener('click', resetFilters);
+$('#emptyReset').addEventListener('click', resetFilters);
 $('#lightbox').addEventListener('click', (event) => { if (event.target.id === 'lightbox') closeLightbox(); });
 
 /* ── view toggle & controls ───────────────────────────────────────────────── */
@@ -1257,7 +1278,7 @@ $('#sort').addEventListener('change', (event) => {
 
 document.addEventListener('keydown', (event) => {
   const typing = /^(input|textarea|select)$/i.test(event.target.tagName) || event.target.isContentEditable;
-  if (event.key === 'Escape' && !$('#lightbox').hidden) { closeLightbox(); return; }
+  if (event.key === 'Escape' && $('#lightbox').open) { event.preventDefault(); closeLightbox(); return; }
   if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
   if (event.key === '/') { event.preventDefault(); $('#search').focus(); }
   else if (event.key.toLowerCase() === 't') { $('#themeBtn').click(); }
@@ -1280,6 +1301,7 @@ window.addEventListener('offline', () => setLive('error', 'offline'));
     const btn = $('#repoBtn');
     btn.hidden = false;
     btn.href = CFG.repoUrl;
+    $('#guideLink').href = `${CFG.repoUrl}#publishing-a-run`;
   }
 
   // Initialize view mode from storage
