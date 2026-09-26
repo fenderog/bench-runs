@@ -153,7 +153,9 @@ if (events.length) {
   if (unnamed.length) warn(`${unnamed.length} tool call(s) have no tool name`);
 
   if (!last.output && last.status === 'complete') error('run.end reports status complete but has no output');
-  if (run && last.status && run.status !== last.status) {
+  // A missing run.json.status is tolerated (the site treats it as complete and the
+  // schema no longer tracks it); only a *contradictory* status is an error.
+  if (run?.status && last.status && run.status !== last.status) {
     error(`run.json.status ("${run.status}") disagrees with the transcript's last event ("${last.status}")`);
   }
 
