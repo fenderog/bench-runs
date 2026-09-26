@@ -1,0 +1,200 @@
+{
+  "id": "2026-09-25_voxel-ragdoll-sandbox",
+  "title": "Voxel Ragdoll Sandbox",
+  "model": "stealth/space-bunny-alpha",
+  "benchmark": "voxel-ragdoll-godot",
+  "date": "2026-09-25T19:48:00.000Z",
+  "tags": [
+    "godot",
+    "voxel",
+    "stealth/space-bunny-alpha"
+  ],
+  "summary": "A Godot 4.7 top-down voxel sandbox: a tan blockhead walks a grim walled yard of 102 obstacles and ragdolls into anything it cannot avoid. Exported to WebAssembly and playable on this page; verified booting on WebGL 2.0 with zero console errors and a working dive under a synthetic keypress.",
+  "metrics": {
+    "turns": {
+      "value": 85,
+      "hint": "assistant messages"
+    },
+    "reasoning_blocks": {
+      "value": 116,
+      "hint": "captured verbatim"
+    },
+    "tool_calls": {
+      "value": 210
+    },
+    "tool_errors": {
+      "value": 5,
+      "hint": "failed tool calls"
+    },
+    "duration": {
+      "value": 4343.8,
+      "unit": "s"
+    },
+    "task_completion": {
+      "value": 1,
+      "unit": "%",
+      "hint": "1/1 manual acceptance: a Godot 4.7 project that builds a walled voxel yard, walks a blockhead around it, and ragdolls on contact — exported to a playable WASM build"
+    },
+    "web_build_boots": {
+      "value": 1,
+      "unit": "%",
+      "hint": "headless Chrome 154.0.8037.58 over CDP: engine 4.7.2, OpenGL ES 3.0 / WebGL 2.0 Compatibility, canvas 1280x633, 0 JS exceptions and 0 console errors"
+    },
+    "web_input_verified": {
+      "value": 1,
+      "unit": "%",
+      "hint": "synthetic Space keydown dispatched over CDP: DIVE banner shown, FLOPS 0->1, DIVES 0->1, vigor 100->96, camera tracking the ragdoll"
+    },
+    "smoke_test_errors": {
+      "value": 0,
+      "hint": "godot --autotest: 0 errors and 0 warnings across trip, dive, recovery, barrel punt, crate shatter, pickup, death and respawn"
+    },
+    "trip_detected": {
+      "value": 1,
+      "unit": "%",
+      "hint": "sprinting into a wall at 5.7 m/s over 4.3 m/s threshold with a side-on normal: state NORMAL->RAGDOLL, cause=trip, vigor 100->80.6"
+    },
+    "barrel_punt": {
+      "value": 1,
+      "unit": "%",
+      "hint": "a barrel rolling at 8 m/s into the blockhead: cause=knock, flops 2->3, vigor drop applied"
+    },
+    "ragdoll_parts": {
+      "value": 11,
+      "hint": "head, torso, pelvis, pack, arm_l, arm_r, leg_l, leg_r, foot_l, foot_r, cleaver — each its own RigidBody3D while ragdolling"
+    },
+    "ragdoll_joints": {
+      "value": 9,
+      "hint": "ConeTwistJoint3D: spine, neck, pack, two shoulders, two hips, two ankles; the cleaver is deliberately unjointed"
+    },
+    "gd_lines": {
+      "value": 2263,
+      "hint": "15 GDScript files, everything generated in code — no imported meshes, textures or audio"
+    },
+    "yard_obstacles": {
+      "value": 102,
+      "hint": "26 crates, 18 stumps, 16 barrels, 8 pillars, 34 loose blocks, plus 10 meat pickups"
+    },
+    "godot_pck_bytes": {
+      "value": 71260,
+      "hint": "the exported game data; the rest of the 38 MB download is the engine"
+    },
+    "export_total_bytes": {
+      "value": 39905031,
+      "hint": "whole web build: index.wasm 39,514,754 + index.js 279,815 + index.pck 71,260 + index.html 5,441 + icons and audio worklets"
+    },
+    "web_wasm_bytes": {
+      "value": 39514754,
+      "hint": "index.wasm size; sha256 fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0"
+    }
+  },
+  "environment": {
+    "harness": "pi 0.87.1",
+    "model": "stealth/space-bunny-alpha",
+    "model_provider": "openrouter",
+    "reasoning_mode": "high",
+    "reasoning_visible": "yes, all 116 block(s) captured verbatim",
+    "tools": "read, bash, edit, write, addon_log, grep, find, ls, powershell, mcpScript, mcp, web_search, source_check, fetch_content, get_search_content, ask_user_question",
+    "working_directory": "/Volumes/M2SSD/tries/2026-09-25-voxel-spacebunny",
+    "transcript_format": "pi",
+    "source_log": "01a0db9d-a9e8-71e3-889b-39ecb88e6ac0.jsonl",
+    "harness_version": "0.87.1",
+    "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+    "engine_renderer": "gl_compatibility (OpenGL ES 3.0) — required for the web export, which ships no Forward+ template",
+    "physics_engine": "Jolt Physics (project/3d/physics_engine), 60 Hz",
+    "max_steps": null,
+    "decoding": null,
+    "sandbox": "local shell, no container; headless Chrome 154.0.8037.58 driven over the DevTools Protocol (SwiftShader) to verify the exported build",
+    "hardware": "Apple M4, macOS 27.0",
+    "project_language": "GDScript only — 15 files, 2,263 lines, no imported meshes, textures or audio",
+    "export_templates": "Godot 4.7.2 web_nothreads_release, extracted from Godot_v4.7.2-stable_export_templates.tpz",
+    "artefact": "media/playable/ — the full Godot web export: index.wasm 39,514,754 B (sha256 fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0), index.js 279,815 B, index.pck 71,260 B, index.html 5,441 B, icons and audio worklets; all relative paths, so the folder is self-contained",
+    "verification": "godot --autotest over trip, dive, recovery, barrel punt, crate shatter, pickup, death and respawn: 0 errors, 0 warnings; headless Chrome CDP load of the exported build: 0 JS exceptions, 0 console errors, canvas 1280x633; synthetic Space keydown over CDP produced a live dive (FLOPS 0->1, vigor 100->96)",
+    "model_switches_before_prompt": "muse-spark-1.3-contributor (meta) -> stealth/space-bunny-alpha (openrouter) at 2026-09-26T02:49:05Z, before the first assistant message of this task",
+    "interventions": "four ask_user_question rounds: one malformed (6 options on a question that allows 4) was rejected by the tool and re-asked; the rest set control scheme, ragdoll scope, art direction, world size, run name, artifact size and tags"
+  },
+  "links": [
+    {
+      "label": "Godot 4.7.2 export templates (the web build's engine)",
+      "href": "https://github.com/godotengine/godot-builds/releases/tag/4.7.2-stable"
+    },
+    {
+      "label": "Zombox — the capture this was modelled on (zombox.net)",
+      "href": "http://www.zombox.net/stuff/zombox_cap_134.gif"
+    }
+  ],
+  "media": [
+    {
+      "type": "markdown",
+      "src": "prompt.md",
+      "caption": "Original prompt (verbatim)"
+    },
+    {
+      "type": "markdown",
+      "src": "system-prompt.md",
+      "caption": "System prompt"
+    },
+    {
+      "type": "markdown",
+      "src": "transcript.md",
+      "lazy": true,
+      "caption": "Full transcript — prompt, 116 reasoning block(s), 210 tool call(s) and the final output"
+    },
+    {
+      "type": "file",
+      "src": "transcript.jsonl",
+      "label": "transcript.jsonl (canonical, machine readable)"
+    },
+    {
+      "type": "file",
+      "src": "media/raw/01a0db9d-a9e8-71e3-889b-39ecb88e6ac0.jsonl",
+      "label": "Original pi session log (untouched)",
+      "download": true
+    },
+    {
+      "type": "playable",
+      "kind": "iframe",
+      "src": "media/playable/index.html",
+      "aspect": "16 / 9",
+      "wide": true,
+      "caption": "The actual artefact: a Godot 4.7 build exported to WebAssembly, playable in this page. WASD to walk, Shift to sprint (sprint into something solid and you trip), Space to dive into a full ragdoll, F to flop, R to respawn. Red meat on the floor restores vigor; the counter is the bread in the top left."
+    },
+    {
+      "type": "file",
+      "src": "media/playable/index.wasm",
+      "label": "index.wasm — the compiled Godot 4.7.2 engine (39,514,754 B, the bulk of the download)",
+      "download": true
+    },
+    {
+      "type": "file",
+      "src": "media/playable/index.pck",
+      "label": "index.pck — the game itself, 71,260 B: every mesh is generated in code at load time, so there are no assets to ship",
+      "download": true
+    },
+    {
+      "type": "image",
+      "src": "media/screenshot-yard.png",
+      "wide": true,
+      "caption": "The yard at rest — 19.2 x 19.2 m walled and grim, 102 obstacles, ten scraps of meat",
+      "alt": "Top-down view of a dark walled yard of dirt and grass, with brown crates, red barrels, grey stone pillars, red meat pickups and a small tan blockhead in the middle"
+    },
+    {
+      "type": "image",
+      "src": "media/screenshot-dive.png",
+      "caption": "Mid-dive: eleven rigid bodies, nine cone-twist joints, and a cleaver already leaving the hand",
+      "alt": "The blockhead airborne in a heap of tan voxel parts with a DIVE banner on screen"
+    },
+    {
+      "type": "image",
+      "src": "media/screenshot-crate-shatter.png",
+      "caption": "A crate hit above 4 m/s comes apart into eight rigid blocks, and the blockhead scatters them again on the way down",
+      "alt": "Brown voxel blocks scattered around the blockhead on the yard floor"
+    },
+    {
+      "type": "image",
+      "src": "media/screenshot-closeup-ragdoll.png",
+      "alt": "Close view of the ragdoll: head, torso, pack, two arms, two legs, two feet lying loose on the ground"
+    }
+  ],
+  "notes": "# Capture and grading notes\n\n## Task and prompt\n\n- **Benchmark instruction:** `in this folder create a godot project with a voxel character walking around\n  avoiding obstacles. Add ragdoll wherever you can to make it a fun experience. Make the whole experience\n  inspired by this gif: http://www.zombox.net/stuff/zombox_cap_134.gif`\n- The prompt arrived as the opening message of a pi session, which also carried the\n  `fe-capture-benchmark-run` skill invocation and the system prompt. `prompt.md` preserves that\n  **whole** first message byte for byte; the graded instruction is the sentence quoted above. The\n  skill text is harness-injected context, not part of the benchmark's task definition.\n- So this is **not** a prompt-only single-turn evaluation: the model was also acting as operator for\n  part of the run (choosing the export preset, debugging the web build, and finally publishing this\n  archive). That work is in the transcript and is not hidden from it.\n\n## Coverage boundary\n\nPi appends every turn to one continuously growing session file. `media/raw/` is a **byte-for-byte\nsnapshot** of `2026-09-26T02-48-58-089Z_01a0db9d-a9e8-71e3-889b-39ecb88e6ac0.jsonl` taken at\n**398 lines / 11,926,042 bytes**, SHA-256\n`f46da183ad60d5c38da06b1f3b6fb5b2f3513f8ebcaf69f62c0b797b92e586b2`.\n\nIt is a **prefix**, not the final session file — the session continues afterwards with the\nscaffolding, staging and this publish step, which are operator actions rather than task work. The\nbyte length and hash above are the ones the capture recorded under `run.start.source`; an exact line\ncount is deliberately *not* restated as a claim about the live file, because that file is still\ngrowing while this note is written. The canonical transcript was not edited after capture.\n\n## Model and reasoning\n\n- **Model:** `stealth/space-bunny-alpha` via `openrouter`, reasoning level `high`\n  (`thinking_level_change` record).\n- The session header records one model switch, from `muse-spark-1.3-contributor` (meta) to\n  `stealth/space-bunny-alpha` at `2026-09-26T02:49:05Z`. It happens **before** the first assistant\n  message of this task, so it does not affect the result; the transcript retains it as a raw record.\n- **Reasoning visibility:** all 116 thinking blocks are disclosed as plain text. None were encrypted\n  by the provider. No reasoning text was reconstructed or paraphrased.\n\n## What was built\n\nA Godot 4.7 project in `/Volumes/M2SSD/tries/2026-09-25-voxel-spacebunny`, **2,263 lines of GDScript\nacross 15 files, with no imported assets of any kind** — every mesh is generated in code at load\ntime, which is why the exported game data is only 71 KB.\n\n- **The yard** (`world.gd`): a 19.2 x 19.2 m walled enclosure generated from value noise at three\n  scales — a big blotch picks the biome, a middle octave breaks up its edge, a hash sprinkles grit.\n  102 obstacles: 26 crates, 18 stumps, 16 barrels, 8 pillars, 34 loose blocks, plus 10 meat pickups.\n- **The blockhead** (`voxel_rig.gd`): **11 voxel parts** — head, torso, pelvis, pack, two arms, two\n  legs, two feet, and a cleaver — on pivot nodes posed in code. The walk is procedural: leg swing,\n  counter-swinging arms, torso bob and lean, and a slow breath when idle.\n- **The ragdoll**: any part can become its own `RigidBody3D`, wired back together with **9\n  `ConeTwistJoint3D`s** (spine, neck, pack, two shoulders, two hips, two ankles). The cleaver is\n  deliberately *not* jointed — it is held by collision exceptions, so it leaves the hand on every\n  flop. Getting up is not a teleport: each part is blended in world space from where it actually\n  came to rest back to the walk pose over 0.5 s.\n- **Everything else is loose too**: barrels roll and punt the player, crates shatter into eight rigid\n  blocks above 4 m/s, and loose blocks are kicked by the player's feet.\n\n## Verification performed\n\n- `godot --headless --quit-after` — 0 errors, 0 warnings.\n- `godot --path . -- --autotest=<dir>` drives a scripted run through trip, dive, recovery, barrel\n  punt, crate shatter, pickup, death and respawn, screenshotting each step into `media/`. Final run:\n  **0 errors, 0 warnings**; `flops 0->1` on the wall trip (`cause=trip`, vigor 100→80.6),\n  `flops 1->2` on the dive, `flops 2->3` on the barrel punt (`cause=knock`), `ragdoll=true parts=11`,\n  recovery back to `NORMAL`, eat `42->64`, death and respawn at `(0, 0, 4)` with vigor 100.\n- **Web build**: exported, served over `http.server`, loaded in headless Chrome 154.0.8037.58 over the\n  DevTools protocol. Boots as `Godot Engine v4.7.2.stable`, `OpenGL ES 3.0 (WebGL 2.0)`,\n  `Emscripten 4.0.20, single-threaded`; canvas 1280x633; **0 JS exceptions, 0 console errors**.\n- **Embedded on the bench site, not just standalone**: with the run page served from this repo, the\n  detail view for `2026-09-25_voxel-ragdoll-sandbox` was opened, `.playable-launch` clicked, and the\n  game probed from inside the iframe. It mounts same-origin under the site's own sandbox\n  (`allow-scripts allow-same-origin allow-pointer-lock allow-popups allow-forms allow-modals\n  allow-downloads allow-orientation-lock`), canvas **1049x589** matching the iframe box exactly, and\n  the same three boot lines with no errors. The `allow-same-origin` token is what makes the relative\n  `index.pck` / `index.wasm` fetches legal, so this was worth checking rather than assuming.\n- **Input verified in the browser**: a synthetic `Space` keydown dispatched over CDP produced a live\n  dive — the DIVE banner appeared, `FLOPS 0->1`, `DIVES 0->1`, vigor `100->96`, camera tracking the\n  ragdoll. The tool that does this is kept at `tools/web-check.mjs` in the project.\n\n## The one real rendering bug, and what it cost\n\nThe first web export rendered **almost black**. It was not the web export: the same scene under\nForward+ was correct and under Compatibility was crushed, which was proved by rendering the identical\nframe under both renderers and sampling the same pixels.\n\nThe cause was the `srgb_to_linear()` conversion applied to the palette in `VoxelMesh.from_sparse()`.\nIt is correct under Forward+ and near-fatal under Compatibility, where the shadowed key light stops\ncontributing and only the unshadowed fill light survives. Authoring the palette in sRGB and passing\nit through untouched is correct in both. Along the way the following were each ruled out **by\nscreenshot, not by argument**: SSAO, glow, colour adjustment, MSAA, the soft-shadow filter, shadow\nbias, normal bias, cascade mode (`ORTHOGONAL` / 2 / 4 splits), shadow max distance, light angle,\nself-shadowing by the ground and the skirt, a second directional light, and the camera. A minimal\nrepro project was built to localise it to the project rather than the engine.\n\nTwo consequences of that investigation are permanent and worth stating:\n\n- **The project is pinned to the Compatibility renderer.** Web only ships OpenGL ES 3.0 and the\n  exporter refuses to build a Forward+ project for it, and there is no per-preset override — so the\n  desktop build runs on Compatibility too. SSAO is therefore a no-op here and is left enabled only so\n  the setting returns if the project ever moves back to Forward+.\n- **`vram_texture_compression/for_mobile=true` makes the web exporter reject the preset** with a bare\n  `Cannot export project with preset \"Web\" due to configuration errors:` and an empty error string —\n  no indication of which option is wrong. Both VRAM compression options are off, which is correct\n  anyway: this project imports no textures at all.\n\n## Interventions and caveats\n\n- **Four `ask_user_question` rounds.** One was **rejected by the tool** (`questions.2.options: must\n  not have more than 4 items` — a tags question with eight options) and had to be split; that failed\n  call is in the transcript. The rest set control scheme (player-only), ragdoll scope (full body\n  everywhere), art direction (faithful Zombox), world size (single walled yard), run name, artifact\n  size, and tags. The model did not choose these silently.\n- **The Zombox reference gif was fetched and decompiled, not guessed at**: 450 frames, a 12-frame\n  contact sheet plus twelve full-resolution frames, inspected to fix the framing, the character's\n  tan palette, and the HUD layout (bread counter, three inventory slots). The gif and the extracted\n  frames were deleted from the project afterwards.\n- **Prior art was consulted, not copied.** `~/dev/zombox-ragdoll` and `~/dev/voxel-ramble` (both\n  earlier attempts of mine) were read for the jointed-ragdoll and voxel-mesher patterns. This run\n  rebuilt the yard, the character rig, the prop set and the whole palette; the harness-recipes\n  approach in the skill was also reused for the run folder layout.\n- The run therefore includes real tool failures (five `tool_errors`, the ask_user_question rejection\n  among them). That is left in place: a run whose tools failed is a more useful record than a tidied\n  one.\n- **`verify-run.mjs` reports 2 tool calls with no matching result.** That is not a defect in the\n  capture: the log was snapshotted mid-turn, and the last two `tool.call` records in\n  `media/raw/` are the environment-gathering commands whose results had not yet been written when\n  the snapshot was taken. The transcript ends on `run.end` with those two calls outstanding.\n- **Not covered:** no audio. The export ships Godot's two audio worklets because the template always\n  does, but the project plays no sound and defines no `AudioStream`. Frame rate was not measured\n  anywhere — headless SwiftShader is not representative, so no FPS number is claimed.\n- **The 38 MB in the repo is 99% engine.** The game is 71 KB of `.pck`; `index.wasm` is 39.5 MB. It\n  was committed deliberately so the run page is actually playable, which is a real cost to anyone\n  cloning the repository.\n\n## Privacy\n\nBefore publication the raw log and transcript were checked for API keys, authorisation headers and\nprivate-key blocks; `verify-run.mjs` reports no credential leak. They are not free of paths,\nthough: the prompt, raw log and transcript contain absolute paths from file operations\n(`/Volumes/M2SSD/tries/…`, `/Users/fender/…`), and `verify-run.mjs` warns about them on 11\n`transcript.jsonl` lines, 23 `transcript.md` lines, 2 `prompt.md` lines, 2 `system-prompt.md` lines\nand this file. **The repository is public**, so these are being published, not merely held on a\nprivate machine. They are retained deliberately: the account name is already public, the machine\nname is already inferable from it, and redacting paths out of the canonical log would break the one\nthing this format exists for — checking the transcript against what actually happened on the\nmachine. If that trade is wrong for this repo, the fix is to redact at capture time and record the\nredaction here, not to quietly edit the transcript afterwards.\n"
+}

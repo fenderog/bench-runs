@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generatedAt": "2026-09-26T00:11:44.050Z",
-  "count": 3,
+  "generatedAt": "2026-09-26T04:12:24.796Z",
+  "count": 4,
   "runs": [
     {
       "id": "2026-09-25_three-js-voxel-house-demo",
@@ -457,6 +457,278 @@
         "preview": null,
         "mediaCount": 3,
         "bytes": 518483,
+        "warnings": []
+      }
+    },
+    {
+      "id": "2026-09-25_voxel-ragdoll-sandbox",
+      "title": "Voxel Ragdoll Sandbox",
+      "model": "stealth/space-bunny-alpha",
+      "benchmark": "voxel-ragdoll-godot",
+      "date": "2026-09-25T19:48:00.000Z",
+      "tags": [
+        "godot",
+        "voxel",
+        "stealth/space-bunny-alpha"
+      ],
+      "summary": "A Godot 4.7 top-down voxel sandbox: a tan blockhead walks a grim walled yard of 102 obstacles and ragdolls into anything it cannot avoid. Exported to WebAssembly and playable on this page; verified booting on WebGL 2.0 with zero console errors and a working dive under a synthetic keypress.",
+      "metrics": [
+        {
+          "label": "turns",
+          "value": 85,
+          "unit": "",
+          "better": null,
+          "hint": "assistant messages"
+        },
+        {
+          "label": "reasoning_blocks",
+          "value": 116,
+          "unit": "",
+          "better": null,
+          "hint": "captured verbatim"
+        },
+        {
+          "label": "tool_calls",
+          "value": 210,
+          "unit": "",
+          "better": null,
+          "hint": ""
+        },
+        {
+          "label": "tool_errors",
+          "value": 5,
+          "unit": "",
+          "better": null,
+          "hint": "failed tool calls"
+        },
+        {
+          "label": "duration",
+          "value": 4343.8,
+          "unit": "s",
+          "better": null,
+          "hint": ""
+        },
+        {
+          "label": "task_completion",
+          "value": 1,
+          "unit": "%",
+          "better": null,
+          "hint": "1/1 manual acceptance: a Godot 4.7 project that builds a walled voxel yard, walks a blockhead around it, and ragdolls on contact — exported to a playable WASM build"
+        },
+        {
+          "label": "web_build_boots",
+          "value": 1,
+          "unit": "%",
+          "better": null,
+          "hint": "headless Chrome 154.0.8037.58 over CDP: engine 4.7.2, OpenGL ES 3.0 / WebGL 2.0 Compatibility, canvas 1280x633, 0 JS exceptions and 0 console errors"
+        },
+        {
+          "label": "web_input_verified",
+          "value": 1,
+          "unit": "%",
+          "better": null,
+          "hint": "synthetic Space keydown dispatched over CDP: DIVE banner shown, FLOPS 0->1, DIVES 0->1, vigor 100->96, camera tracking the ragdoll"
+        },
+        {
+          "label": "smoke_test_errors",
+          "value": 0,
+          "unit": "",
+          "better": null,
+          "hint": "godot --autotest: 0 errors and 0 warnings across trip, dive, recovery, barrel punt, crate shatter, pickup, death and respawn"
+        },
+        {
+          "label": "trip_detected",
+          "value": 1,
+          "unit": "%",
+          "better": null,
+          "hint": "sprinting into a wall at 5.7 m/s over 4.3 m/s threshold with a side-on normal: state NORMAL->RAGDOLL, cause=trip, vigor 100->80.6"
+        },
+        {
+          "label": "barrel_punt",
+          "value": 1,
+          "unit": "%",
+          "better": null,
+          "hint": "a barrel rolling at 8 m/s into the blockhead: cause=knock, flops 2->3, vigor drop applied"
+        },
+        {
+          "label": "ragdoll_parts",
+          "value": 11,
+          "unit": "",
+          "better": null,
+          "hint": "head, torso, pelvis, pack, arm_l, arm_r, leg_l, leg_r, foot_l, foot_r, cleaver — each its own RigidBody3D while ragdolling"
+        },
+        {
+          "label": "ragdoll_joints",
+          "value": 9,
+          "unit": "",
+          "better": null,
+          "hint": "ConeTwistJoint3D: spine, neck, pack, two shoulders, two hips, two ankles; the cleaver is deliberately unjointed"
+        },
+        {
+          "label": "gd_lines",
+          "value": 2263,
+          "unit": "",
+          "better": null,
+          "hint": "15 GDScript files, everything generated in code — no imported meshes, textures or audio"
+        },
+        {
+          "label": "yard_obstacles",
+          "value": 102,
+          "unit": "",
+          "better": null,
+          "hint": "26 crates, 18 stumps, 16 barrels, 8 pillars, 34 loose blocks, plus 10 meat pickups"
+        },
+        {
+          "label": "godot_pck_bytes",
+          "value": 71260,
+          "unit": "",
+          "better": null,
+          "hint": "the exported game data; the rest of the 38 MB download is the engine"
+        },
+        {
+          "label": "export_total_bytes",
+          "value": 39905031,
+          "unit": "",
+          "better": null,
+          "hint": "whole web build: index.wasm 39,514,754 + index.js 279,815 + index.pck 71,260 + index.html 5,441 + icons and audio worklets"
+        },
+        {
+          "label": "web_wasm_bytes",
+          "value": 39514754,
+          "unit": "",
+          "better": null,
+          "hint": "index.wasm size; sha256 fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0"
+        }
+      ],
+      "charts": [],
+      "environment": {
+        "harness": "pi 0.87.1",
+        "model": "stealth/space-bunny-alpha",
+        "model_provider": "openrouter",
+        "reasoning_mode": "high",
+        "reasoning_visible": "yes, all 116 block(s) captured verbatim",
+        "tools": "read, bash, edit, write, addon_log, grep, find, ls, powershell, mcpScript, mcp, web_search, source_check, fetch_content, get_search_content, ask_user_question",
+        "working_directory": "/Volumes/M2SSD/tries/2026-09-25-voxel-spacebunny",
+        "transcript_format": "pi",
+        "source_log": "01a0db9d-a9e8-71e3-889b-39ecb88e6ac0.jsonl",
+        "harness_version": "0.87.1",
+        "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+        "engine_renderer": "gl_compatibility (OpenGL ES 3.0) — required for the web export, which ships no Forward+ template",
+        "physics_engine": "Jolt Physics (project/3d/physics_engine), 60 Hz",
+        "max_steps": null,
+        "decoding": null,
+        "sandbox": "local shell, no container; headless Chrome 154.0.8037.58 driven over the DevTools Protocol (SwiftShader) to verify the exported build",
+        "hardware": "Apple M4, macOS 27.0",
+        "project_language": "GDScript only — 15 files, 2,263 lines, no imported meshes, textures or audio",
+        "export_templates": "Godot 4.7.2 web_nothreads_release, extracted from Godot_v4.7.2-stable_export_templates.tpz",
+        "artefact": "media/playable/ — the full Godot web export: index.wasm 39,514,754 B (sha256 fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0), index.js 279,815 B, index.pck 71,260 B, index.html 5,441 B, icons and audio worklets; all relative paths, so the folder is self-contained",
+        "verification": "godot --autotest over trip, dive, recovery, barrel punt, crate shatter, pickup, death and respawn: 0 errors, 0 warnings; headless Chrome CDP load of the exported build: 0 JS exceptions, 0 console errors, canvas 1280x633; synthetic Space keydown over CDP produced a live dive (FLOPS 0->1, vigor 100->96)",
+        "model_switches_before_prompt": "muse-spark-1.3-contributor (meta) -> stealth/space-bunny-alpha (openrouter) at 2026-09-26T02:49:05Z, before the first assistant message of this task",
+        "interventions": "four ask_user_question rounds: one malformed (6 options on a question that allows 4) was rejected by the tool and re-asked; the rest set control scheme, ragdoll scope, art direction, world size, run name, artifact size and tags"
+      },
+      "links": [
+        {
+          "label": "Godot 4.7.2 export templates (the web build's engine)",
+          "href": "https://github.com/godotengine/godot-builds/releases/tag/4.7.2-stable"
+        },
+        {
+          "label": "Zombox — the capture this was modelled on (zombox.net)",
+          "href": "http://www.zombox.net/stuff/zombox_cap_134.gif"
+        }
+      ],
+      "notes": "# Capture and grading notes\n\n## Task and prompt\n\n- **Benchmark instruction:** `in this folder create a godot project with a voxel character walking around\n  avoiding obstacles. Add ragdoll wherever you can to make it a fun experience. Make the whole experience\n  inspired by this gif: http://www.zombox.net/stuff/zombox_cap_134.gif`\n- The prompt arrived as the opening message of a pi session, which also carried the\n  `fe-capture-benchmark-run` skill invocation and the system prompt. `prompt.md` preserves that\n  **whole** first message byte for byte; the graded instruction is the sentence quoted above. The\n  skill text is harness-injected context, not part of the benchmark's task definition.\n- So this is **not** a prompt-only single-turn evaluation: the model was also acting as operator for\n  part of the run (choosing the export preset, debugging the web build, and finally publishing this\n  archive). That work is in the transcript and is not hidden from it.\n\n## Coverage boundary\n\nPi appends every turn to one continuously growing session file. `media/raw/` is a **byte-for-byte\nsnapshot** of `2026-09-26T02-48-58-089Z_01a0db9d-a9e8-71e3-889b-39ecb88e6ac0.jsonl` taken at\n**398 lines / 11,926,042 bytes**, SHA-256\n`f46da183ad60d5c38da06b1f3b6fb5b2f3513f8ebcaf69f62c0b797b92e586b2`.\n\nIt is a **prefix**, not the final session file — the session continues afterwards with the\nscaffolding, staging and this publish step, which are operator actions rather than task work. The\nbyte length and hash above are the ones the capture recorded under `run.start.source`; an exact line\ncount is deliberately *not* restated as a claim about the live file, because that file is still\ngrowing while this note is written. The canonical transcript was not edited after capture.\n\n## Model and reasoning\n\n- **Model:** `stealth/space-bunny-alpha` via `openrouter`, reasoning level `high`\n  (`thinking_level_change` record).\n- The session header records one model switch, from `muse-spark-1.3-contributor` (meta) to\n  `stealth/space-bunny-alpha` at `2026-09-26T02:49:05Z`. It happens **before** the first assistant\n  message of this task, so it does not affect the result; the transcript retains it as a raw record.\n- **Reasoning visibility:** all 116 thinking blocks are disclosed as plain text. None were encrypted\n  by the provider. No reasoning text was reconstructed or paraphrased.\n\n## What was built\n\nA Godot 4.7 project in `/Volumes/M2SSD/tries/2026-09-25-voxel-spacebunny`, **2,263 lines of GDScript\nacross 15 files, with no imported assets of any kind** — every mesh is generated in code at load\ntime, which is why the exported game data is only 71 KB.\n\n- **The yard** (`world.gd`): a 19.2 x 19.2 m walled enclosure generated from value noise at three\n  scales — a big blotch picks the biome, a middle octave breaks up its edge, a hash sprinkles grit.\n  102 obstacles: 26 crates, 18 stumps, 16 barrels, 8 pillars, 34 loose blocks, plus 10 meat pickups.\n- **The blockhead** (`voxel_rig.gd`): **11 voxel parts** — head, torso, pelvis, pack, two arms, two\n  legs, two feet, and a cleaver — on pivot nodes posed in code. The walk is procedural: leg swing,\n  counter-swinging arms, torso bob and lean, and a slow breath when idle.\n- **The ragdoll**: any part can become its own `RigidBody3D`, wired back together with **9\n  `ConeTwistJoint3D`s** (spine, neck, pack, two shoulders, two hips, two ankles). The cleaver is\n  deliberately *not* jointed — it is held by collision exceptions, so it leaves the hand on every\n  flop. Getting up is not a teleport: each part is blended in world space from where it actually\n  came to rest back to the walk pose over 0.5 s.\n- **Everything else is loose too**: barrels roll and punt the player, crates shatter into eight rigid\n  blocks above 4 m/s, and loose blocks are kicked by the player's feet.\n\n## Verification performed\n\n- `godot --headless --quit-after` — 0 errors, 0 warnings.\n- `godot --path . -- --autotest=<dir>` drives a scripted run through trip, dive, recovery, barrel\n  punt, crate shatter, pickup, death and respawn, screenshotting each step into `media/`. Final run:\n  **0 errors, 0 warnings**; `flops 0->1` on the wall trip (`cause=trip`, vigor 100→80.6),\n  `flops 1->2` on the dive, `flops 2->3` on the barrel punt (`cause=knock`), `ragdoll=true parts=11`,\n  recovery back to `NORMAL`, eat `42->64`, death and respawn at `(0, 0, 4)` with vigor 100.\n- **Web build**: exported, served over `http.server`, loaded in headless Chrome 154.0.8037.58 over the\n  DevTools protocol. Boots as `Godot Engine v4.7.2.stable`, `OpenGL ES 3.0 (WebGL 2.0)`,\n  `Emscripten 4.0.20, single-threaded`; canvas 1280x633; **0 JS exceptions, 0 console errors**.\n- **Embedded on the bench site, not just standalone**: with the run page served from this repo, the\n  detail view for `2026-09-25_voxel-ragdoll-sandbox` was opened, `.playable-launch` clicked, and the\n  game probed from inside the iframe. It mounts same-origin under the site's own sandbox\n  (`allow-scripts allow-same-origin allow-pointer-lock allow-popups allow-forms allow-modals\n  allow-downloads allow-orientation-lock`), canvas **1049x589** matching the iframe box exactly, and\n  the same three boot lines with no errors. The `allow-same-origin` token is what makes the relative\n  `index.pck` / `index.wasm` fetches legal, so this was worth checking rather than assuming.\n- **Input verified in the browser**: a synthetic `Space` keydown dispatched over CDP produced a live\n  dive — the DIVE banner appeared, `FLOPS 0->1`, `DIVES 0->1`, vigor `100->96`, camera tracking the\n  ragdoll. The tool that does this is kept at `tools/web-check.mjs` in the project.\n\n## The one real rendering bug, and what it cost\n\nThe first web export rendered **almost black**. It was not the web export: the same scene under\nForward+ was correct and under Compatibility was crushed, which was proved by rendering the identical\nframe under both renderers and sampling the same pixels.\n\nThe cause was the `srgb_to_linear()` conversion applied to the palette in `VoxelMesh.from_sparse()`.\nIt is correct under Forward+ and near-fatal under Compatibility, where the shadowed key light stops\ncontributing and only the unshadowed fill light survives. Authoring the palette in sRGB and passing\nit through untouched is correct in both. Along the way the following were each ruled out **by\nscreenshot, not by argument**: SSAO, glow, colour adjustment, MSAA, the soft-shadow filter, shadow\nbias, normal bias, cascade mode (`ORTHOGONAL` / 2 / 4 splits), shadow max distance, light angle,\nself-shadowing by the ground and the skirt, a second directional light, and the camera. A minimal\nrepro project was built to localise it to the project rather than the engine.\n\nTwo consequences of that investigation are permanent and worth stating:\n\n- **The project is pinned to the Compatibility renderer.** Web only ships OpenGL ES 3.0 and the\n  exporter refuses to build a Forward+ project for it, and there is no per-preset override — so the\n  desktop build runs on Compatibility too. SSAO is therefore a no-op here and is left enabled only so\n  the setting returns if the project ever moves back to Forward+.\n- **`vram_texture_compression/for_mobile=true` makes the web exporter reject the preset** with a bare\n  `Cannot export project with preset \"Web\" due to configuration errors:` and an empty error string —\n  no indication of which option is wrong. Both VRAM compression options are off, which is correct\n  anyway: this project imports no textures at all.\n\n## Interventions and caveats\n\n- **Four `ask_user_question` rounds.** One was **rejected by the tool** (`questions.2.options: must\n  not have more than 4 items` — a tags question with eight options) and had to be split; that failed\n  call is in the transcript. The rest set control scheme (player-only), ragdoll scope (full body\n  everywhere), art direction (faithful Zombox), world size (single walled yard), run name, artifact\n  size, and tags. The model did not choose these silently.\n- **The Zombox reference gif was fetched and decompiled, not guessed at**: 450 frames, a 12-frame\n  contact sheet plus twelve full-resolution frames, inspected to fix the framing, the character's\n  tan palette, and the HUD layout (bread counter, three inventory slots). The gif and the extracted\n  frames were deleted from the project afterwards.\n- **Prior art was consulted, not copied.** `~/dev/zombox-ragdoll` and `~/dev/voxel-ramble` (both\n  earlier attempts of mine) were read for the jointed-ragdoll and voxel-mesher patterns. This run\n  rebuilt the yard, the character rig, the prop set and the whole palette; the harness-recipes\n  approach in the skill was also reused for the run folder layout.\n- The run therefore includes real tool failures (five `tool_errors`, the ask_user_question rejection\n  among them). That is left in place: a run whose tools failed is a more useful record than a tidied\n  one.\n- **`verify-run.mjs` reports 2 tool calls with no matching result.** That is not a defect in the\n  capture: the log was snapshotted mid-turn, and the last two `tool.call` records in\n  `media/raw/` are the environment-gathering commands whose results had not yet been written when\n  the snapshot was taken. The transcript ends on `run.end` with those two calls outstanding.\n- **Not covered:** no audio. The export ships Godot's two audio worklets because the template always\n  does, but the project plays no sound and defines no `AudioStream`. Frame rate was not measured\n  anywhere — headless SwiftShader is not representative, so no FPS number is claimed.\n- **The 38 MB in the repo is 99% engine.** The game is 71 KB of `.pck`; `index.wasm` is 39.5 MB. It\n  was committed deliberately so the run page is actually playable, which is a real cost to anyone\n  cloning the repository.\n\n## Privacy\n\nBefore publication the raw log and transcript were checked for API keys, authorisation headers and\nprivate-key blocks; `verify-run.mjs` reports no credential leak. They are not free of paths,\nthough: the prompt, raw log and transcript contain absolute paths from file operations\n(`/Volumes/M2SSD/tries/…`, `/Users/fender/…`), and `verify-run.mjs` warns about them on 11\n`transcript.jsonl` lines, 23 `transcript.md` lines, 2 `prompt.md` lines, 2 `system-prompt.md` lines\nand this file. **The repository is public**, so these are being published, not merely held on a\nprivate machine. They are retained deliberately: the account name is already public, the machine\nname is already inferable from it, and redacting paths out of the canonical log would break the one\nthing this format exists for — checking the transcript against what actually happened on the\nmachine. If that trade is wrong for this repo, the fix is to redact at capture time and record the\nredaction here, not to quietly edit the transcript afterwards.",
+      "media": [
+        {
+          "type": "markdown",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/prompt.md",
+          "caption": "Original prompt (verbatim)",
+          "text": "<skill name=\"fe-capture-benchmark-run\" location=\"/Users/fender/.pi/agent/skills/fe-capture-benchmark-run/SKILL.md\">\nReferences are relative to /Users/fender/.pi/agent/skills/fe-capture-benchmark-run.\n\n# Capture a benchmark run from any harness\n\nTurn one agent/LLM run into a result that a stranger can audit six months from now:\nwhat was asked, what the model thought, what it did, what came out, and on what\nstack. The artefact is a folder in a bench-runs repo:\n\n```\npublic/results/<run-id>/\n├── run.json          ← what the website renders\n├── transcript.jsonl  ← canonical, machine-readable, lossless timeline\n├── transcript.md     ← human-readable rendering (prompt + reasoning + tools + output)\n├── prompt.md         ← the original task prompt, verbatim and alone\n├── notes.md          ← optional prose: method, caveats\n└── media/\n    ├── raw/          ← the untouched source session/API log\n    └── …             ← screenshots, video, .wasm playables, extra logs\n```\n\nThe point is **evidence, not summary**. Anyone must be able to verify the claim\n\"model X with reasoning mode Y scored Z\" from the artefacts you ship.\n\n## Non-negotiables\n\n1. **Verbatim or not at all.** Copy prompt, reasoning, tool I/O and output\n   character-for-character. Never paraphrase, tidy, translate, re-wrap, or\n   \"summarise for brevity\". If you must shorten, truncate explicitly with\n   `truncated: true` and record `original_bytes`, and keep the full version in\n   `media/raw/`.\n2. **Never invent.** No reconstructed reasoning, no guessed token counts, no\n   plausible-looking latency. Omit an unknown field; do not fill it in.\n3. **Reasoning that the harness will not disclose is still data.** Many stacks\n   return encrypted or redacted reasoning (e.g. an empty `thinking` string next\n   to a `signature`, or Codex's `encrypted_content`). Emit an\n   `assistant.thinking` event with `encrypted: true`, keep the ciphertext in\n   `media/raw/`, and set `reasoning.visible: false` in `run.start`. Silently\n   omitting the block would misrepresent the run as having no reasoning.\n4. **One run, one folder, one immutable record.** Never edit a captured\n   transcript after the fact. Corrections go in `notes.md` as an annotation.\n5. **Redact secrets before publishing.** Scan for keys/tokens; a transcript\n   contains every command the agent ran and every file it read.\n\n## Step 1 — locate the repo\n\nFind the bench-runs checkout (the directory containing both `public/results/`\nand `scripts/build-manifest.mjs`). If the current directory is inside one, use it;\notherwise ask. Everything below is relative to that root.\n\n## Step 2 — find the source session\n\nSession logs are written by the harness, usually under the user's home directory.\nSee `references/harness-recipes.md` for exact paths and formats, plus the\ndetection commands, for: **pi**, **Claude Code**, **Codex CLI/Desktop**,\n**OpenAI Chat Completions / Responses**, **Anthropic Messages**, and generic\nJSONL. If the harness is unknown, ask for the log or the API request/response pair\nand use the `generic` adapter.\n\nCapture facts about the *environment* while you still have them — harness version,\nreasoning level, sampling parameters, sandbox, GPU. Some of this is only in the\nsession header or the CLI flags, not in the messages.\n\n## Step 3 — make the run directory first, then capture into it\n\nEvery new run gets its own directory before anything else. **Ask first, scaffold\nsecond**: before creating anything, ask the user for the run name and tags with\nthe interactive question tool (`ask_user_question`) — never invent them.\nAsk both in one go:\n\n- **Run name** — the human title for the card and folder slug. Propose your\n  best suggestion as the recommended option (e.g. `\"<model> — <task>\"`);\n  the user can also just type their own.\n- **Tags** — multi-select from your suggestions (task type, benchmark, topic);\n  the user can add their own. Do not ask for the model — it is appended to the\n  tags automatically (see below).\n\nThen scaffold it with the repo helper (the capture tool targets the same folder\nwith `--id`):\n\n```bash\ncd /path/to/bench-runs\nnpm run new -- \"Muse Spark — hello-world html\" \\\n  --model muse-spark-1.3-contributor \\\n  --tags html,hello-world,muse-spark-1.3-contributor\n# → public/results/2026-09-25_muse-spark-hello-world-html/\n```\n\nDo the work with that folder as home: task artefacts (`.html`, images, video,\n`.wasm`, logs) go straight into `<folder>/media/`. `.html` files render on the\nsite as embedded playables; everything visual stays visible while prompts,\ntranscripts and raw logs collapse into the audit trail automatically.\n\nAlways include the model id in `--tags` — the site's tag chips are how runs get\nfiltered by model.\n\nThen normalise the source log into the same folder with the bundled capture\ntool. `--id` reuses the scaffolded directory and `--force` lets the capture\nrefresh its own files; hand-placed files under `media/` are left alone. Note\nthe capture **rewrites `run.json`**, so artefacts only survive via `--media`,\nand the graded outcome via `--metrics` — pass them every time:\n\n```bash\nnode <skill-dir>/scripts/capture-run.mjs \\\n  --repo /path/to/bench-runs \\\n  --id 2026-09-25_muse-spark-hello-world-html \\\n  --force \\\n  --from ~/.pi/agent/sessions/--Users-me-proj--/2026-06-21T10-12-00Z_abc.jsonl \\\n  --format pi \\\n  --title \"Muse Spark — hello-world html\" \\\n  --model muse-spark-1.3-contributor \\\n  --harness \"pi 0.87.1\" \\\n  --benchmark hello-world \\\n  --tags html,hello-world,muse-spark-1.3-contributor \\\n  --media /tmp/hello-world-media.json \\\n  --metrics /tmp/hello-world-metrics.json \\\n  --summary \"Two sentences: what ran, what happened, headline number.\"\n```\n\n`--media` is a JSON array of the artefact entries staged in `media/`, e.g.\n`[{\"type\":\"playable\",\"src\":\"media/hello-world.html\",\"caption\":\"Generated site\"}]`.\n`--metrics` is the graded outcome, e.g. `{\"success\":{\"value\":1,\"unit\":\"%\"}}`.\n\n`--format auto` (the default) sniffs the log. If the harness is unsupported,\nwrite the canonical JSONL yourself — the schema is small and specified in\n`references/transcript-format.md`.\n\nThen verify before going further:\n\n```bash\nnode <skill-dir>/scripts/verify-run.mjs public/results/<run-id>\n```\n\nIt fails on unparseable transcripts, non-monotonic `seq`, missing originals,\nmissing files, and leaked credentials. Fix what it reports; re-run until clean.\n\n## Step 4 — complete `run.json`\n\n`capture-run.mjs` writes a working skeleton. You must then edit it to add what a\nmachine cannot know:\n\n- **`summary`** — two sentences: what was run, what happened, what the headline\n  number is. This is the only prose most people will read.\n- **`metrics`** — the graded outcome. `{ \"value\": …, \"unit\": \"%\", \"hint\": \"…\" }`.\n  Values ≤ 1 with `\"unit\": \"%\"` render as percentages.\n- **`environment`** — the reproducibility block. Always include `harness`,\n  `harness_version`, `model`, `reasoning_mode`, `decoding`, `tools`, `max_steps`,\n  `sandbox`, `hardware`. These are the fields that make a run comparable.\n- **`charts`** — only if you have real series data (score per category, latency\n  vs. length). Never draw a chart from invented numbers.\n- **`media`** — screenshots of the UI, a screen recording, a `.wasm` playable of\n  the artefact, external logs. `capture-run.mjs` already wires up `prompt.md`,\n  `transcript.md` and `transcript.jsonl`.\n- **`notes.md`** — method, extraction rules, known caveats, everything the run\n  *cannot* show.\n\nKeep `status` honest: `running` and `partial` exist so a preliminary number is\nnever mistaken for a final one.\n\n## Step 5 — publish (one command: verify → manifest → push)\n\n```bash\ncd /path/to/bench-runs\nnpm run publish -- <run-id>   # verify-run + manifest + git commit + git push\nnpm run dev                   # optional: eyeball it at http://127.0.0.1:4173\n```\n\n`--no-push` commits without pushing; `--dry-run` prints the steps without\nrunning them; `--message \"…\"` overrides the default `results: <run-id>` commit\nmessage. The command fails fast — a red verify or manifest build stops before\nanything is committed. CI redeploys afterwards; open tabs pick the run up\nautomatically.\n\n## What \"captured everything\" means\n\nBefore you call a run done, all of these must be answerable from the folder alone:\n\n- [ ] The exact task prompt, byte-identical, in `prompt.md` and in the first\n      `user.message` event with `original_prompt: true`\n- [ ] Every thinking/reasoning block, in order, with empty/encrypted ones marked\n      as such rather than dropped — and `reasoning.visible` telling the truth\n- [ ] Every assistant message that produced user-visible output\n- [ ] Every tool call with its full input, and every result (errors included) —\n      a run whose tools failed is a more interesting record, not a worse one\n- [ ] The final output as its own field (`run.end.output`), not inferred\n- [ ] Model id, harness + version, reasoning mode/effort/budget, decoding params\n- [ ] Usage, duration, step/turn counts, stop reason where the harness reports them\n- [ ] The untouched original log in `media/raw/`\n- [ ] Zero credentials, zero absolute home paths you are not happy to publish\n- [ ] `verify-run.mjs` exits 0\n\n## Reference\n\n- `references/transcript-format.md` — canonical event schema, field by field\n- `references/harness-recipes.md` — per-harness paths, shapes, sniffing, gotchas\n- `scripts/capture-run.mjs` — adapt + capture into the run folder + write `run.json`\n- `scripts/publish-run.mjs` — verify + manifest + commit + push in one step\n- `scripts/verify-run.mjs` — validation and secret scanning\n- `scripts/transcript-to-md.mjs` — re-render `transcript.md` after edits\n</skill>\n\nin this folder create a godot project with a voxel character walking around avoiding obstacles. Add ragdoll wherever you can to make it a fun experience. Make the whole experience inspired by this gif: http://www.zombox.net/stuff/zombox_cap_134.gif\n"
+        },
+        {
+          "type": "markdown",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/system-prompt.md",
+          "caption": "System prompt",
+          "text": "## preamble\nYou are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.\n\n## tools\n<tools>\n- mcpScript: Batch multiple MCP tool calls in one JavaScript request (loop, filter, chain)\n- mcp: MCP gateway — install by URL, status, search, describe, auth, and single MCP tool calls\n- web_search: Use for web research questions. Prefer {queries:[...]} with 2-4 varied angles over a single query for broader coverage. Omit provider unless explicitly overriding the configured default.\n- source_check: Gather structured source evidence and passage-level citations for manual semantic review of a claim.\n- fetch_content: Use to fetch URL content, direct images, GitHub repos, and videos.\n- get_search_content: Use after web_search, source_check, or fetch_content to retrieve stored content via responseId. Use findText to locate passages without paging through the full content.\n- ask_user_question: Ask the user up to 4 structured questions (2-4 options each) when requirements are ambiguous\n\nIn addition to the tools above, you may have access to other custom tools depending on the project.\n</tools>\n\n## rules\n<rules>\n- Name every new addon file (extension, skill, prompt, theme) with the 'fe-' prefix.\n- Use ask_user_question whenever the user's request is underspecified and you cannot proceed without concrete decisions — you can ask up to 4 questions per invocation.\n- Each question MUST have 2-4 options. Every option requires a concise label (1-5 words) and a description explaining what the choice means or its trade-offs. The user can additionally type a custom answer via the automatically appended \"Type something.\" row on every question, or press Esc to abandon the questionnaire. Do NOT author \"Other\" or \"Type something.\" labels yourself — reserved labels are rejected at runtime.\n- Set multiSelect: true when multiple answers are valid. Provide an options[].preview markdown string when an option benefits from richer side-by-side context (mockups, code snippets, diagrams, configs) — single-select only. The \"Type something.\" row is appended to every question; in preview mode it expands to the full pane width while typing so the custom answer is not cramped into the narrow options column. If you recommend a specific option, make that the first option and append \"(Recommended)\" to its label.\n- Do not stack multiple ask_user_question calls back-to-back — group all clarifying questions into one invocation.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n## docs\n<docs>\nPi documentation (read only when the user asks about pi itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), pi packages (docs/packages.md), environment variables (docs/environment-variables.md)\n- When working on pi topics, read the docs and examples, and follow .md cross-references before implementing\n- Always read pi .md files completely and follow links to related docs (e.g., tui.md for TUI API details)\n</docs>\n\n## skills\n<skills>\nThe following skills provide specialized instructions for specific tasks.\nUse the read tool to load a skill's file when the task matches its description.\nWhen a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n\n<available_skills>\n  <skill>\n    <name>fe-capture-benchmark-run</name>\n    <description>Capture a complete, auditable record of an LLM or agent run from any harness (pi, Claude Code, Codex, OpenAI/Anthropic SDKs, LangGraph, or a custom eval script) into a publishable bench-runs result. Preserves the original prompt verbatim, every thinking/reasoning block, all tool calls and results, and the final output, alongside model, harness, and reasoning-mode metadata. Use when asked to log, capture, archive, transcribe, or publish a run, or to turn a session or API trace into a benchmark result.</description>\n    <location>/Users/fender/.pi/agent/skills/fe-capture-benchmark-run/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>fe-subsession-run</name>\n    <description>Run a user prompt in an isolated sub-session with fresh context (zero parent conversation history), execute the prompt to completion, and capture all outputs (response, artifacts, transcripts, and metadata) into a designated folder under ~/dev. Activate this skill whenever the user asks to run a prompt in a sub-session, isolated session, clean context, without current session&apos;s context, or to capture a prompt&apos;s full output under ~/dev.</description>\n    <location>/Users/fender/.pi/agent/skills/fe-subsession-run/SKILL.md</location>\n  </skill>\n</available_skills>\n</skills>\n\n## cwd\n<cwd>\n/Volumes/M2SSD/tries/2026-09-25-voxel-spacebunny\n</cwd>\n"
+        },
+        {
+          "type": "markdown",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/transcript.md",
+          "lazy": true,
+          "caption": "Full transcript — prompt, 116 reasoning block(s), 210 tool call(s) and the final output",
+          "bytes": 636939
+        },
+        {
+          "type": "file",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/transcript.jsonl",
+          "label": "transcript.jsonl (canonical, machine readable)",
+          "bytes": 1029870
+        },
+        {
+          "type": "file",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/media/raw/01a0db9d-a9e8-71e3-889b-39ecb88e6ac0.jsonl",
+          "label": "Original pi session log (untouched)",
+          "download": true,
+          "bytes": 11926042
+        },
+        {
+          "type": "playable",
+          "kind": "iframe",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/media/playable/index.html",
+          "aspect": "16 / 9",
+          "wide": true,
+          "caption": "The actual artefact: a Godot 4.7 build exported to WebAssembly, playable in this page. WASD to walk, Shift to sprint (sprint into something solid and you trip), Space to dive into a full ragdoll, F to flop, R to respawn. Red meat on the floor restores vigor; the counter is the bread in the top left.",
+          "bytes": 5441
+        },
+        {
+          "type": "file",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/media/playable/index.wasm",
+          "label": "index.wasm — the compiled Godot 4.7.2 engine (39,514,754 B, the bulk of the download)",
+          "download": true,
+          "bytes": 39514754
+        },
+        {
+          "type": "file",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/media/playable/index.pck",
+          "label": "index.pck — the game itself, 71,260 B: every mesh is generated in code at load time, so there are no assets to ship",
+          "download": true,
+          "bytes": 71260
+        },
+        {
+          "type": "image",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/media/screenshot-yard.png",
+          "wide": true,
+          "caption": "The yard at rest — 19.2 x 19.2 m walled and grim, 102 obstacles, ten scraps of meat",
+          "alt": "Top-down view of a dark walled yard of dirt and grass, with brown crates, red barrels, grey stone pillars, red meat pickups and a small tan blockhead in the middle",
+          "bytes": 334526
+        },
+        {
+          "type": "image",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/media/screenshot-dive.png",
+          "caption": "Mid-dive: eleven rigid bodies, nine cone-twist joints, and a cleaver already leaving the hand",
+          "alt": "The blockhead airborne in a heap of tan voxel parts with a DIVE banner on screen",
+          "bytes": 235625
+        },
+        {
+          "type": "image",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/media/screenshot-crate-shatter.png",
+          "caption": "A crate hit above 4 m/s comes apart into eight rigid blocks, and the blockhead scatters them again on the way down",
+          "alt": "Brown voxel blocks scattered around the blockhead on the yard floor",
+          "bytes": 200766
+        },
+        {
+          "type": "image",
+          "src": "results/2026-09-25_voxel-ragdoll-sandbox/media/screenshot-closeup-ragdoll.png",
+          "alt": "Close view of the ragdoll: head, torso, pack, two arms, two legs, two feet lying loose on the ground",
+          "bytes": 235878
+        }
+      ],
+      "_meta": {
+        "dir": "2026-09-25_voxel-ragdoll-sandbox",
+        "base": "results/2026-09-25_voxel-ragdoll-sandbox/",
+        "version": "kbq5zv",
+        "preview": "results/2026-09-25_voxel-ragdoll-sandbox/media/screenshot-yard.png",
+        "mediaCount": 9,
+        "bytes": 54191101,
         "warnings": []
       }
     }
