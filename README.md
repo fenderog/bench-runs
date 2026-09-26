@@ -14,7 +14,20 @@ public/results/<run-id>/
 └── media/            ← images, video, .wasm modules, playable builds
 ```
 
-![card grid](.screenshots/grid-light.png)
+The archive uses a responsive notebook layout with light and dark themes. Browse
+artifact previews in cards or switch to the table, combine model/tag filters
+with search, and open a run for its metrics, playable outputs and complete audit trail.
+The overview counts recorded runs, models and artifacts; it does not average scores
+across unrelated benchmarks.
+
+![Run archive in light mode](.screenshots/grid-light.png)
+
+<details>
+<summary>Dark theme preview</summary>
+
+![Run archive in dark mode](.screenshots/grid-dark.png)
+
+</details>
 
 ---
 
@@ -273,7 +286,7 @@ Edit the `window.BENCH_CONFIG` block near the top of `public/index.html`:
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `title` / `subtitle` | `Bench Runs` | Header branding |
+| `title` / `subtitle` | `Bench Runs` | Site name / introduction text |
 | `manifest` | `data/results.json` | Manifest location |
 | `repoUrl` | `''` | Adds a **GitHub** button to the header |
 | `pollSeconds` | `30` | Auto-refresh interval; `0` disables polling |
@@ -281,7 +294,10 @@ Edit the `window.BENCH_CONFIG` block near the top of `public/index.html`:
 
 Keyboard: <kbd>/</kbd> search · <kbd>T</kbd> theme · <kbd>R</kbd> refresh ·
 <kbd>Esc</kbd> close. Filter chips are OR within a group and AND across groups.
-The theme follows the system preference until you toggle it manually.
+Model/tag chips combine with search. **Reset filters** (or the
+empty-state action) clears them together. Run links open directly, table titles are
+keyboard accessible, and image previews open above the detail dialog. The theme
+follows the system preference until you toggle it manually.
 
 ---
 

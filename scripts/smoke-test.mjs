@@ -124,7 +124,9 @@ class Cdp {
   }
 
   async shot(name, fullPage = false) {
-    const result = await this.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: fullPage });
+    const size = fullPage ? (await this.send('Page.getLayoutMetrics')).cssContentSize : null;
+    const clip = size ? { x: 0, y: 0, width: size.width, height: size.height, scale: 1 } : undefined;
+    const result = await this.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: fullPage, clip });
     await fsp.writeFile(path.join(OUT_DIR, `${name}.png`), Buffer.from(result.data, 'base64'));
   }
 
@@ -206,7 +208,12 @@ async function main() {
     check('live indicator reports runs', /live/.test(grid.live), grid.live);
     check('card thumbnails loaded', grid.thumbsBroken === 0, `${grid.thumbsBroken}/${grid.thumbs} broken`);
     console.log(`    runs: ${grid.titles.join(' | ')}`);
-    await cdp.shot('01-grid');
+    await cdp.shot('01-grid', true);
+    const overview = await cdp.eval(`
+      const manifest = await (await fetch('data/results.json')).json();
+      return Number(document.querySelector('#statArtifacts').textContent) === manifest.runs.reduce((n, r) => n + r.media.length, 0);
+    `);
+    check('artifact total reflects the manifest', overview);
 
     // ── live update: publish a run while the page is open ───────────────────
     // Only meaningful when the manifest being served comes from this checkout.
@@ -235,6 +242,32 @@ async function main() {
     check('new run sorted to the top', live.firstTitle === 'Smoke test run', String(live.firstTitle));
     check('user is told about the new result', /new result/i.test(live.toast) && live.toastVisible, live.toast);
     await cdp.shot('02-live-update');
+    const filterChecks = await cdp.eval(`
+      [...document.querySelectorAll('#filters .chip')].find(b => b.textContent.startsWith('test/smoke')).click();
+      const filtered = document.querySelectorAll('#grid .card').length;
+      const search = document.querySelector('#search');
+      search.value = 'no-matching-experiment';
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 180));
+      const empty = !document.querySelector('#empty').hidden;
+      document.querySelector('#emptyReset').click();
+      const reset = document.querySelectorAll('#grid .card').length;
+      document.querySelector('#viewTableBtn').click();
+      const link = document.querySelector('#tableBody .table-title-cell a');
+      link.focus();
+      const keyboardLink = document.activeElement === link;
+      link.click();
+      await new Promise(r => setTimeout(r, 100));
+      const detailOpened = document.querySelector('#detail').open;
+      document.querySelector('#closeBtn').click();
+      document.querySelector('#viewGridBtn').click();
+      return { filtered, empty, reset, keyboardLink, detailOpened };
+    `);
+    check('model filter narrows results', filterChecks.filtered === 1);
+    check('combined search and model filters show empty state', filterChecks.empty);
+    check('empty-state reset restores all runs', filterChecks.reset === live.after);
+    check('table has keyboard-focusable run links', filterChecks.keyboardLink);
+    check('table links open run details', filterChecks.detailOpened);
     await unpublishSmokeRun();
     await cdp.eval(`document.querySelector('#refreshBtn').click(); await new Promise(r => setTimeout(r, 1200)); return 1;`);
     }
@@ -247,6 +280,19 @@ async function main() {
       return withMedia.id;
     `);
     await sleep(1200);
+    // A run URL must also work in a new tab or after a reload.
+    await cdp.send('Page.reload');
+    await sleep(1400);
+    check('direct run link reopens after reload', await cdp.eval(`return document.querySelector('#detail').open;`));
+    // Wait for image decoding before validating and capturing the gallery.
+    await cdp.eval(`
+      for (const img of document.querySelectorAll('#detail .gallery img')) {
+        img.scrollIntoView({ block: 'center', behavior: 'instant' });
+        await img.decode().catch(() => {});
+      }
+      document.querySelector('.detail-inner').scrollTop = 0;
+      return true;
+    `);
     const detail = await cdp.eval(`
       const dialog = document.querySelector('#detail');
       return {
@@ -287,6 +333,17 @@ async function main() {
     await cdp.eval(`document.querySelector('.detail-inner').scrollTop = document.querySelector('.gallery')?.offsetTop - 80 || 200; return 1;`);
     await sleep(400);
     await cdp.shot('03-detail-gallery');
+    const lightbox = await cdp.eval(`
+      const button = document.querySelector('.image-preview');
+      if (!button) return false;
+      button.click();
+      const box = document.querySelector('#lightbox');
+      await document.querySelector('#lightboxImg').decode();
+      const visible = box.open && box.matches(':modal') && document.querySelector('#lightboxImg').naturalWidth > 0;
+      document.querySelector('#lightboxClose').click();
+      return visible && document.querySelector('#detail').open && !box.open;
+    `);
+    check('image preview opens above detail and closes independently', lightbox);
 
     // ── playable (iframe / canvas) ──────────────────────────────────────────
     const iframe = await cdp.eval(`
@@ -335,7 +392,20 @@ async function main() {
     // ── mobile layout ───────────────────────────────────────────────────────
     await cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
     await sleep(600);
-    await cdp.shot('06-mobile');
+    await cdp.shot('06-mobile-detail');
+    const detailOverflow = await cdp.eval(`const el = document.querySelector('.detail-inner'); return el.scrollWidth <= el.clientWidth + 1;`);
+    check('mobile detail has no horizontal overflow', detailOverflow);
+    await cdp.eval(`document.querySelector('#closeBtn').click(); return true;`);
+    await sleep(200);
+    await cdp.eval(`
+      for (const card of document.querySelectorAll('#grid .card')) {
+        card.scrollIntoView({ block: 'center', behavior: 'instant' });
+        await new Promise(r => setTimeout(r, 350));
+      }
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      return true;
+    `);
+    await cdp.shot('06-mobile', true);
     const mobile = await cdp.eval(`
       const grid = document.querySelector('#grid');
       return { columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length, overflow: document.documentElement.scrollWidth <= window.innerWidth + 1 };
@@ -363,7 +433,7 @@ async function main() {
     await cdp.shot('07-dark-detail');
     await cdp.eval(`location.hash = '#/'; return 1;`);
     await sleep(700);
-    await cdp.shot('08-dark-grid');
+    await cdp.shot('08-dark-grid', true);
 
     const problems = cdp.consoleProblems();
     check('no console errors or warnings', problems.length === 0, problems.slice(0, 5).join(' || '));
