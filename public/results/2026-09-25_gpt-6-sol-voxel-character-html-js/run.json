@@ -4,7 +4,6 @@
   "model": "gpt-6-sol",
   "benchmark": "voxel-character-html-js",
   "date": "2026-09-25T22:23:34.428Z",
-  "status": "complete",
   "tags": [],
   "metrics": {
     "task_completion": {

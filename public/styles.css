@@ -491,10 +491,9 @@ main { max-width: var(--maxw); margin: 0 auto; padding: var(--pad); }
 
 .card-overlays {
   position: absolute; inset: 0; padding: 10px;
-  display: flex; align-items: flex-start; justify-content: space-between;
+  display: flex; align-items: flex-start; justify-content: flex-end;
   pointer-events: none; gap: 6px;
 }
-.card-overlays-right { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 
 .badge {
   display: inline-flex; align-items: center; gap: 5px;
@@ -505,16 +504,6 @@ main { max-width: var(--maxw); margin: 0 auto; padding: var(--pad); }
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #f1f5f9;
-}
-.badge-status-complete {
-  color: #34d399; border-color: rgba(52, 211, 153, 0.35);
-}
-.badge-status-running {
-  color: #fbbf24; border-color: rgba(251, 191, 36, 0.35);
-}
-.badge-status-running::before {
-  content: ""; width: 5px; height: 5px; border-radius: 50%;
-  background: #fbbf24; animation: pulse-dot 1.2s infinite ease-in-out;
 }
 .badge-new {
   background: var(--accent); border-color: var(--accent);

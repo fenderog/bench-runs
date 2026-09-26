@@ -161,9 +161,6 @@ machine cannot know:
 - **`notes.md`** — method, extraction rules, known caveats, everything the run
   *cannot* show.
 
-Keep `status` honest: `running` and `partial` exist so a preliminary number is
-never mistaken for a final one.
-
 ## Step 5 — publish (one command: verify → manifest → push)
 
 ```bash

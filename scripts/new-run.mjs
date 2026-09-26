@@ -64,7 +64,6 @@ const run = {
   model: typeof flags.model === 'string' ? flags.model : '',
   benchmark: typeof flags.benchmark === 'string' ? flags.benchmark : '',
   date: new Date(`${date}T${new Date().toISOString().slice(11, 19)}Z`).toISOString(),
-  status: typeof flags.status === 'string' ? flags.status : 'complete',
   tags,
   summary: '',
   metrics: {

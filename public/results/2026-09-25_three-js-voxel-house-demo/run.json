@@ -4,7 +4,6 @@
   "model": "deepseek/deepseek-v4.1-flash",
   "benchmark": "voxel-house-threejs",
   "date": "2026-09-25T23:01:44.899Z",
-  "status": "complete",
   "tags": [
     "voxel-house",
     "deepseek-v4.1-flash",

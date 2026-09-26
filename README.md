@@ -80,7 +80,6 @@ Only `title` really matters — everything else is optional.
   "model": "meta-llama/Llama-3.1-8B-Instruct",
   "benchmark": "GSM8K",
   "date": "2026-06-21T10:12:00Z",     // falls back to a YYYY-MM-DD folder prefix
-  "status": "complete",                // complete | running | failed | partial
   "tags": ["reasoning", "math"],
   "summary": "One or two sentences shown on the card.",
 

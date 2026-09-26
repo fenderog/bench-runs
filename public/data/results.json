@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-09-25T23:24:39.959Z",
+  "generatedAt": "2026-09-26T00:11:44.050Z",
   "count": 3,
   "runs": [
     {
@@ -9,7 +9,6 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "benchmark": "voxel-house-threejs",
       "date": "2026-09-25T23:01:44.899Z",
-      "status": "complete",
       "tags": [
         "voxel-house",
         "deepseek-v4.1-flash",
@@ -201,7 +200,7 @@
       "_meta": {
         "dir": "2026-09-25_three-js-voxel-house-demo",
         "base": "results/2026-09-25_three-js-voxel-house-demo/",
-        "version": "1p4xky6",
+        "version": "1rmkuvz",
         "preview": "results/2026-09-25_three-js-voxel-house-demo/media/screenshot.png",
         "mediaCount": 6,
         "bytes": 3231014,
@@ -214,7 +213,6 @@
       "model": "gpt-6-sol",
       "benchmark": "voxel-character-html-js",
       "date": "2026-09-25T22:23:34.428Z",
-      "status": "complete",
       "tags": [],
       "summary": "gpt-6-sol (pi, high reasoning) generated a self-contained, interactive HTML Canvas voxel explorer with rotation, zoom and jacket palettes. The JavaScript passed a syntax check and the page rendered in headless Chrome; manual task completion was 1/1.",
       "metrics": [
@@ -342,7 +340,7 @@
       "_meta": {
         "dir": "2026-09-25_gpt-6-sol-voxel-character-html-js",
         "base": "results/2026-09-25_gpt-6-sol-voxel-character-html-js/",
-        "version": "ewob7b",
+        "version": "4gwb10",
         "preview": "results/2026-09-25_gpt-6-sol-voxel-character-html-js/media/screenshot.png",
         "mediaCount": 4,
         "bytes": 2079847,
@@ -355,9 +353,8 @@
       "model": "muse-spark-1.3-contributor",
       "benchmark": "hello-world",
       "date": "2026-09-25T22:04:07.824Z",
-      "status": "running",
       "tags": [],
-      "summary": "muse-spark-1.3-contributor via pi 0.87.1 generated a single-file hello-world HTML site. The file write is evidenced in-transcript; the capture was taken mid-run so status stays running.",
+      "summary": "muse-spark-1.3-contributor via pi 0.87.1 generated a single-file hello-world HTML site. The file write is evidenced in-transcript.",
       "metrics": [
         {
           "label": "success",
@@ -456,7 +453,7 @@
       "_meta": {
         "dir": "2026-09-25_muse-spark-1-3-contributor-hello-world-html-reas",
         "base": "results/2026-09-25_muse-spark-1-3-contributor-hello-world-html-reas/",
-        "version": "3sw93z",
+        "version": "x3190h",
         "preview": null,
         "mediaCount": 3,
         "bytes": 518483,

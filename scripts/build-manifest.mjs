@@ -284,7 +284,6 @@ async function buildRun(entry) {
     model: str(data.model),
     benchmark: str(data.benchmark),
     date: normalizeDate(data.date, folderName, id),
-    status: str(data.status) || 'complete',
     tags: arr(data.tags).map(str).filter(Boolean),
     summary: str(data.summary) || str(data.description),
     metrics: normalizeMetrics(data.metrics, id),

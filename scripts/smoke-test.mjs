@@ -47,7 +47,6 @@ async function publishSmokeRun() {
     model: 'test/smoke',
     benchmark: 'SmokeBench',
     date: '2099-01-01T00:00:00Z',
-    status: 'complete',
     tags: ['smoke'],
     metrics: { accuracy: { value: 1, unit: '%' } },
     media: [],
@@ -381,7 +380,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
+main().then(() => {
+  process.exit(process.exitCode || 0);
+}).catch((err) => {
   console.error('✗ smoke test failed:', err);
   process.exit(1);
 });

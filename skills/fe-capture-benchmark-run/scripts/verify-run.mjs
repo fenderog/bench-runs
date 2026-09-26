@@ -38,7 +38,6 @@ const KNOWN_TYPES = new Set([
   'run.start', 'run.end', 'run.error', 'system.message', 'user.message',
   'assistant.thinking', 'assistant.message', 'tool.call', 'tool.result', 'note',
 ]);
-const VALID_STATUS = new Set(['complete', 'partial', 'failed', 'aborted', 'running']);
 
 /* ── run.json ─────────────────────────────────────────────────────────────── */
 
@@ -57,8 +56,6 @@ if (run) {
   if (!run.title) error('run.json has no "title"');
   if (!run.date) error('run.json has no "date"');
   else if (Number.isNaN(Date.parse(run.date))) error(`run.json date "${run.date}" is not parseable`);
-  if (!run.status) warn('run.json has no "status" (defaults to complete on the site)');
-  else if (!VALID_STATUS.has(run.status)) error(`run.json status "${run.status}" is not one of ${[...VALID_STATUS].join(', ')}`);
   if (!run.summary) warn('run.json has no "summary" — the card will show only the title');
   if (!run.model) warn('run.json has no "model" — the run cannot be compared to anything');
   if (!run.benchmark) warn('run.json has no "benchmark"');

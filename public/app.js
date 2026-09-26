@@ -631,7 +631,6 @@ function inferMediaTag(run) {
 function renderCard(run) {
   const metrics = (run.metrics ?? []).slice(0, 3);
   const mediaTag = inferMediaTag(run);
-  const isRunning = run.status === 'running';
 
   const card = h('a', {
     class: 'card',
@@ -642,13 +641,8 @@ function renderCard(run) {
     h('div', { class: 'card-thumb' },
       cardThumb(run),
       h('div', { class: 'card-overlays' },
-        isRunning
-          ? h('span', { class: 'badge badge-status-running', text: 'RUNNING' })
-          : h('span', { class: 'badge badge-status-complete', text: 'COMPLETE' }),
-        h('div', { class: 'card-overlays-right' },
-          mediaTag ? h('span', { class: 'badge', text: mediaTag }) : null,
-          state.newIds.has(run.id) ? h('span', { class: 'badge badge-new', text: 'NEW' }) : null,
-        ),
+        mediaTag ? h('span', { class: 'badge', text: mediaTag }) : null,
+        state.newIds.has(run.id) ? h('span', { class: 'badge badge-new', text: 'NEW' }) : null,
       ),
     ),
     h('div', { class: 'card-body' },
@@ -677,7 +671,6 @@ function renderCard(run) {
 function renderTableRow(run) {
   const version = run._meta?.version;
   const preview = run._meta?.preview;
-  const isRunning = run.status === 'running';
 
   let thumbNode;
   if (preview && !run.media?.find((m) => m.src === preview)?.missing) {
@@ -704,10 +697,6 @@ function renderTableRow(run) {
       h('small', { text: run.benchmark || '—' }),
     ),
     h('td', {}, h('span', { class: 'card-model-pill', text: run.model || '—' })),
-    h('td', {},
-      isRunning
-        ? h('span', { class: 'badge badge-status-running', text: 'RUNNING' })
-        : h('span', { class: 'badge badge-status-complete', text: 'COMPLETE' })),
     h('td', {},
       primaryMetric
         ? h('div', {},
@@ -819,7 +808,7 @@ function renderImage(run, item, index) {
   const src = bust(item.src, run._meta?.version);
   const img = h('img', {
     src, alt: item.alt || item.caption || `${run.title} image ${index + 1}`,
-    loading: 'lazy', decoding: 'async', onclick: () => openLightbox(src, item.alt || item.caption || ''),
+    decoding: 'async', onclick: () => openLightbox(src, item.alt || item.caption || ''),
   });
   return h('figure', { class: 'media-block' + (item.wide ? ' wide' : '') },
     item.missing ? h('div', { class: 'media-missing' }, h('div', { text: '⚠ file missing' }), h('div', { text: item.src })) : h('div', { class: 'media-frame' }, img),
@@ -915,7 +904,7 @@ function renderPlayable(run, item, index) {
         run,
         item,
       });
-      bar.prepend(h('span', { class: 'playable-meta', text: 'running' }));
+      bar.prepend(h('span', { class: 'playable-meta', text: 'active' }));
     } catch (err) {
       host.append(h('div', { class: 'playable-error', text: `Could not start WebAssembly: ${err.message}` }));
       console.error('[bench] wasm playable failed', err);
@@ -1024,7 +1013,6 @@ function renderDetail(run) {
   const envEntries = Object.entries(run.environment ?? {});
   const warnings = run._meta?.warnings ?? [];
   const hasAudit = auditMedia.length > 0 || envEntries.length > 0 || run.notes || warnings.length > 0;
-  const isRunning = run.status === 'running';
 
   // Breadcrumbs
   const breadcrumb = clear($('#detailBreadcrumb'));
@@ -1052,9 +1040,6 @@ function renderDetail(run) {
 
   const heroBlock = h('div', { class: 'detail-hero' },
     h('div', { class: 'detail-sub' },
-      isRunning
-        ? h('span', { class: 'badge badge-status-running', text: 'RUNNING' })
-        : h('span', { class: 'badge badge-status-complete', text: 'COMPLETE' }),
       h('span', { class: 'card-model-pill', text: run.model || 'model' }),
       run.benchmark ? h('span', { class: 'dot', text: '·' }) : null,
       run.benchmark ? h('span', { text: run.benchmark }) : null,

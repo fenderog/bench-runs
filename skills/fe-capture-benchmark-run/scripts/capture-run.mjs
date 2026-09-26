@@ -4,7 +4,7 @@
  *
  *   node capture-run.mjs --from <raw session log> [--format auto|pi|claude-code|codex|openai|anthropic|generic] \
  *     --title "…" [--model …] [--harness …] [--reasoning-mode …] [--benchmark …] \
- *     [--tags a,b] [--status complete] [--date YYYY-MM-DD] [--summary "…"] \
+ *     [--tags a,b] [--date YYYY-MM-DD] [--summary "…"] \
  *     [--metrics metrics.json] [--media extra.json] [--notes-file notes.md] \
  *     [--repo /path/to/bench-runs] [--id folder-name] [--no-raw] [--force] [--dry-run]
  *
@@ -47,7 +47,6 @@ if (!flag('from') && !positional.length) {
   --reasoning-mode "…"   free text, e.g. "extended thinking, effort=high"
   --benchmark <name>     benchmark the run belongs to
   --tags a,b             comma separated tags
-  --status <s>           complete | partial | failed | aborted | running
   --date YYYY-MM-DD      defaults to the run's own timestamp
   --summary "…"          two sentences for the card
   --metrics <file.json>  graded metrics (merged over the derived counters)
@@ -280,7 +279,6 @@ const run = prune({
   model: flag('model') ?? meta.model?.id ?? '',
   benchmark: flag('benchmark', '') || '',
   date,
-  status,
   tags: flag('tags') ? String(flag('tags')).split(',').map((t) => t.trim()).filter(Boolean) : [],
   summary: flag('summary', '') || '',
   metrics,
@@ -336,7 +334,7 @@ if (duration) console.log(`  duration    ${(duration / 1000).toFixed(1)}s`);
 console.log(`  written     ${rel}/run.json, transcript.jsonl, transcript.md, prompt.md`);
 if (reasoningStats.total === 0 && reasoning.visible !== false) warn('no reasoning blocks in this log — if reasoning was enabled, record {"reasoning":{"visible":false}} in run.start');
 if (reasoningStats.encrypted && reasoningStats.disclosed === 0) warn('all reasoning was withheld as ciphertext — the run records that honestly; do not paraphrase reasoning from elsewhere');
-if (!finalOutput) warn('no final assistant output found — status set to partial; check the log tail');
+if (!finalOutput) warn('no final assistant output found; check the log tail');
 if (truncations.length) warn(`${truncations.length} oversized output(s) truncated in transcript.jsonl (originals in media/${rawCopyName})`);
 if (Object.keys(unmapped).length) warn(`unmapped harness records: ${JSON.stringify(unmapped)}`);
 if (!Object.keys(gradedMetrics).length) warn('metrics are derived counters only — add the graded result with --metrics, e.g. {"accuracy":{"value":0.842,"unit":"%"}}');
