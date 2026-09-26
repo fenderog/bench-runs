@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Optional browser smoke test. Drives headless Chrome over CDP to verify that
- * the card grid, detail view, media (image/video/table/chart), WASM and iframe
+ * the run list, run page, media (image/video/table/chart), WASM and iframe
  * playables all render without console errors.
  *
  *   node scripts/smoke-test.mjs [--keep] [--url http://127.0.0.1:4173/]
@@ -9,7 +9,7 @@
  * Requires Chrome/Chromium and a running `npm run serve`. Exits non-zero on
  * any console error or failed assertion. Screenshots land in .smoke/.
  */
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import os from 'node:os';
@@ -34,31 +34,6 @@ const CHROME_CANDIDATES = [
 ].filter(Boolean);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const SMOKE_RUN_ID = '2099-01-01_smoke-test-run';
-const SMOKE_RUN_DIR = path.join(ROOT, 'public', 'results', SMOKE_RUN_ID);
-
-/** Fake "someone pushed a new result" so the live-update path is exercised for real. */
-async function publishSmokeRun() {
-  await fsp.mkdir(path.join(SMOKE_RUN_DIR, 'media'), { recursive: true });
-  await fsp.writeFile(path.join(SMOKE_RUN_DIR, 'run.json'), JSON.stringify({
-    id: SMOKE_RUN_ID,
-    title: 'Smoke test run',
-    model: 'test/smoke',
-    benchmark: 'SmokeBench',
-    date: '2099-01-01T00:00:00Z',
-    tags: ['smoke'],
-    metrics: { accuracy: { value: 1, unit: '%' } },
-    media: [],
-  }, null, 2));
-  const result = spawnSync(process.execPath, ['scripts/build-manifest.mjs'], { cwd: ROOT, encoding: 'utf8' });
-  if (result.status !== 0) throw new Error(`manifest build failed: ${result.stderr}`);
-}
-
-async function unpublishSmokeRun() {
-  await fsp.rm(SMOKE_RUN_DIR, { recursive: true, force: true });
-  spawnSync(process.execPath, ['scripts/build-manifest.mjs'], { cwd: ROOT, encoding: 'utf8' });
-}
 
 function findChrome() {
   for (const candidate of CHROME_CANDIDATES) {
@@ -92,12 +67,11 @@ class Cdp {
           }
         });
         return cdp;
-      } catch (err) {
-        if (attempt === 59) throw err;
+      } catch {
+        if (attempt === 59) throw new Error('could not attach to devtools');
         await sleep(250);
       }
     }
-    throw new Error('could not attach to devtools');
   }
 
   send(method, params = {}) {
@@ -182,166 +156,207 @@ async function main() {
     await cdp.send('Page.navigate', { url: URL_BASE });
     await sleep(2200);
 
-    // ── grid ────────────────────────────────────────────────────────────────
-    const grid = await cdp.eval(`
+    // ── index ───────────────────────────────────────────────────────────────
+    const index = await cdp.eval(`
       const manifest = await (await fetch('data/results.json?t=' + Date.now())).json();
-      const cards = [...document.querySelectorAll('#grid .card')];
-      const chips = [...document.querySelectorAll('#filters .chip')];
+      const rows = [...document.querySelectorAll('#runs .run-row')];
       return {
         expected: manifest.count,
-        cards: cards.length,
-        titles: cards.map(c => c.querySelector('.card-title')?.textContent),
-        chips: chips.length,
-        count: document.querySelector('#count').textContent,
-        live: document.querySelector('#liveText').textContent,
-        thumbsBroken: [...document.querySelectorAll('.card-thumb img')].filter(i => !i.complete || i.naturalWidth === 0).length,
-        thumbs: document.querySelectorAll('.card-thumb img').length,
+        rows: rows.length,
+        titles: rows.map(r => r.querySelector('.run-title')?.textContent),
+        chips: document.querySelectorAll('#filters .chip').length,
+        meta: document.querySelector('#meta').textContent,
+        footer: document.querySelector('#footerMeta').textContent,
+        thumbs: document.querySelectorAll('.run-thumb img').length,
+        thumbsBroken: [...document.querySelectorAll('.run-thumb img')].filter(i => !i.complete || i.naturalWidth === 0).length,
       };
     `);
-    check('one card per run', grid.cards === grid.expected, `got ${grid.cards}, expected ${grid.expected}`);
-    // Bench chips were removed and runs are currently tagless, so only the
-    // model chips may be present — the point is the filter row renders.
-    check('filter chips rendered', grid.chips >= 1, `got ${grid.chips}`);
-    check('result counter filled', /\d+ of \d+/.test(grid.count), grid.count);
-    check('live indicator reports runs', /live/.test(grid.live), grid.live);
-    check('card thumbnails loaded', grid.thumbsBroken === 0, `${grid.thumbsBroken}/${grid.thumbs} broken`);
-    console.log(`    runs: ${grid.titles.join(' | ')}`);
-    await cdp.shot('01-grid');
+    check('one row per run', index.rows === index.expected, `got ${index.rows}, expected ${index.expected}`);
+    check('filter chips rendered', index.chips >= 1, `got ${index.chips}`);
+    check('counter line stays quiet when unfiltered', index.meta === '', index.meta);
+    check('footer summary filled', /run/.test(index.footer), index.footer);
+    check('row thumbnails loaded', index.thumbsBroken === 0, `${index.thumbsBroken}/${index.thumbs} broken`);
+    console.log(`    runs: ${index.titles.join(' | ')}`);
+    await cdp.shot('01-index');
 
-    // ── live update: publish a run while the page is open ───────────────────
-    // Only meaningful when the manifest being served comes from this checkout.
-    const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/.test(URL_BASE);
-    if (!isLocal) {
-      console.log('  – skipping live-publish test (not serving a local manifest)');
-    } else {
-    await publishSmokeRun();
-    await sleep(300);
-    const live = await cdp.eval(`
-      const before = document.querySelectorAll('#grid .card').length;
-      document.querySelector('#refreshBtn').click();
-      await new Promise(r => setTimeout(r, 1800));
-      const cards = [...document.querySelectorAll('#grid .card')];
-      return {
-        before,
-        after: cards.length,
-        firstTitle: cards[0]?.querySelector('.card-title')?.textContent,
-        firstBadge: cards[0]?.querySelector('.badge-new')?.textContent,
-        toast: document.querySelector('#toast').textContent,
-        toastVisible: !document.querySelector('#toast').hidden,
+    // ── routing: row → run page → back ──────────────────────────────────────
+    const nav = await cdp.eval(`
+      document.querySelector('#runs .run-row').click();
+      await new Promise(r => setTimeout(r, 700));
+      const detail = {
+        indexHidden: document.querySelector('#indexView').hidden,
+        pageVisible: !document.querySelector('#runView').hidden,
+        title: document.querySelector('#runView .run-title')?.textContent,
+        hash: location.hash,
+        documentTitle: document.title,
       };
+      document.querySelector('.back').click();
+      await new Promise(r => setTimeout(r, 700));
+      return { ...detail, backToIndex: !document.querySelector('#indexView').hidden, rowsBack: document.querySelectorAll('#runs .run-row').length };
     `);
-    check('new run appears after refresh', live.after === live.before + 1, `${live.before} → ${live.after}`);
-    check('new run is badged', live.firstBadge === 'NEW', `${live.firstTitle} / badge=${live.firstBadge}`);
-    check('new run sorted to the top', live.firstTitle === 'Smoke test run', String(live.firstTitle));
-    check('user is told about the new result', /new result/i.test(live.toast) && live.toastVisible, live.toast);
-    await cdp.shot('02-live-update');
-    await unpublishSmokeRun();
-    await cdp.eval(`document.querySelector('#refreshBtn').click(); await new Promise(r => setTimeout(r, 1200)); return 1;`);
-    }
+    check('row opens a run page', nav.pageVisible && nav.indexHidden, JSON.stringify(nav));
+    check('run page sets hash and title', /^#\/run\//.test(nav.hash) && nav.documentTitle.startsWith(nav.title || 'x'), nav.hash);
+    check('back link returns to the list', nav.backToIndex && nav.rowsBack === index.rows, JSON.stringify(nav));
 
-    // ── detail: charts, metrics, media ──────────────────────────────────────
+    // ── run page content ────────────────────────────────────────────────────
     const runId = await cdp.eval(`
-      const updated = await (await fetch('data/results.json?t=' + Date.now())).json();
-      const withMedia = updated.runs.find(r => r.media.some(m => m.type === 'playable'));
+      const manifest = await (await fetch('data/results.json?t=' + Date.now())).json();
+      const withMedia = manifest.runs.find(r => r.media.some(m => m.type === 'playable'));
       location.hash = '#/run/' + encodeURIComponent(withMedia.id);
+      await new Promise(r => setTimeout(r, 700));
       return withMedia.id;
     `);
-    await sleep(1200);
     const detail = await cdp.eval(`
-      const dialog = document.querySelector('#detail');
       return {
-        open: dialog.open,
-        title: document.querySelector('.detail-title')?.textContent,
-        tiles: document.querySelectorAll('.tile').length,
+        title: document.querySelector('#runView h1')?.textContent,
+        summary: document.querySelector('.run-summary')?.textContent.length,
+        metrics: document.querySelectorAll('.metric').length,
         charts: document.querySelectorAll('.chart svg').length,
-        media: document.querySelectorAll('.gallery .media-block').length,
-        videos: document.querySelectorAll('.gallery video').length,
-        tables: document.querySelectorAll('.gallery table').length,
+        media: document.querySelectorAll('.media-block').length,
+        videos: document.querySelectorAll('video').length,
+        tables: document.querySelectorAll('.media-block table').length,
         playables: document.querySelectorAll('.playable-launch').length,
-        imagesBroken: [...document.querySelectorAll('.gallery img')].filter(i => !i.complete || i.naturalWidth === 0).length,
-        images: document.querySelectorAll('.gallery img').length,
+        images: document.querySelectorAll('.media-block img').length,
+        imagesBroken: [...document.querySelectorAll('.media-block img')].filter(i => !i.complete || i.naturalWidth === 0).length,
         prose: document.querySelectorAll('.prose').length,
         proseText: [...document.querySelectorAll('.prose')].map(p => p.textContent.trim().length).reduce((a, b) => a + b, 0),
         proseLinks: document.querySelectorAll('.prose a').length,
-        playIcon: document.querySelector('.playable-launch .play-icon svg') ? getComputedStyle(document.querySelector('.playable-launch .play-icon svg')).width : 'none',
+        disclosure: document.querySelectorAll('.disclosure').length,
+        playIcon: document.querySelector('.playable-launch .play-icon svg')?.getBoundingClientRect().width || 0,
       };
     `);
-    check('detail dialog opened', detail.open, 'dialog not open');
     check('title rendered', detail.title?.length > 3, String(detail.title));
-    check('metric tiles rendered', detail.tiles >= 3, `got ${detail.tiles}`);
+    check('summary rendered', detail.summary > 40, `${detail.summary} characters`);
+    check('metrics rendered', detail.metrics >= 3, `got ${detail.metrics}`);
     if (detail.charts > 0) check('charts rendered as svg', detail.charts >= 1, `got ${detail.charts}`);
     if (detail.videos > 0) check('video element present', detail.videos >= 1, `got ${detail.videos}`);
     if (detail.tables > 0) check('csv table rendered', detail.tables >= 1, `got ${detail.tables}`);
-    check('playable placeholders present', detail.playables >= 1, `got ${detail.playables}`);
-    check('gallery images loaded', detail.imagesBroken === 0, `${detail.imagesBroken}/${detail.images} broken`);
+    check('playable placeholder present', detail.playables >= 1, `got ${detail.playables}`);
+    check('media images loaded', detail.imagesBroken === 0, `${detail.imagesBroken}/${detail.images} broken`);
+    check('prompt/notes disclosure present', detail.disclosure >= 1, `got ${detail.disclosure}`);
     check('notes prose rendered', detail.prose >= 1, `got ${detail.prose}`);
     check('markdown produced content', detail.proseText > 50, `${detail.proseText} characters of prose`);
-    check('play button icon drawn', detail.playIcon !== 'none' && detail.playIcon !== '0px', String(detail.playIcon));
+    check('play button icon drawn', detail.playIcon > 8, String(detail.playIcon));
 
-    const tiles = await cdp.eval(`
-      return [...document.querySelectorAll('.tile')].map(t => t.querySelector('.tile-label').textContent + '=' + t.querySelector('.tile-value').textContent.trim());
+    const metrics = await cdp.eval(`
+      return [...document.querySelectorAll('.metric')].map(m => m.querySelector('.metric-label').textContent + '=' + m.querySelector('.metric-value').textContent.trim());
     `);
-    check('metric units formatted', tiles.some((t) => t.includes('100%') || t.includes('%')), tiles.join(' '));
-    console.log(`    metrics: ${tiles.join(', ')}`);
-    await cdp.shot('02-detail-top');
-    await cdp.eval(`document.querySelector('.detail-inner').scrollTop = document.querySelector('.gallery')?.offsetTop - 80 || 200; return 1;`);
-    await sleep(400);
-    await cdp.shot('03-detail-gallery');
+    check('metric units formatted', metrics.some((m) => m.includes('%')), metrics.join(' '));
+    console.log(`    metrics: ${metrics.join(', ')}`);
+    await cdp.shot('02-run-top');
+    await cdp.eval(`document.querySelector('.gallery').scrollIntoView(); return 1;`);
+    await sleep(500);
+    await cdp.shot('03-run-artifacts');
+
+    // ── disclosure expands to the logs ──────────────────────────────────────
+    const disclosure = await cdp.eval(`
+      const d = document.querySelector('.disclosure');
+      d.open = true;
+      await new Promise(r => setTimeout(r, 500));
+      return {
+        open: d.open,
+        files: d.querySelectorAll('a[download]').length,
+        env: d.querySelectorAll('.kv dt').length,
+        prose: d.querySelectorAll('.prose').length,
+      };
+    `);
+    check('disclosure reveals environment', disclosure.env >= 1, JSON.stringify(disclosure));
+    check('disclosure reveals run.json / log links', disclosure.files >= 1, JSON.stringify(disclosure));
+    await cdp.shot('04-run-logs');
 
     // ── playable (iframe / canvas) ──────────────────────────────────────────
     const iframe = await cdp.eval(`
-      const blocks = [...document.querySelectorAll('.gallery .media-block')];
-      const block = blocks.find(b => b.querySelector('.playable-launch'));
+      const block = [...document.querySelectorAll('.media-block')].find(b => b.querySelector('.playable-launch'));
       if (!block) return { found: false };
       block.querySelector('.playable-launch').click();
       await new Promise(r => setTimeout(r, 2200));
       const frame = block.querySelector('iframe');
       if (!frame) return { found: true, iframe: false, text: block.textContent.slice(0, 200) };
-      return { found: true, iframe: true, sandbox: frame.getAttribute('sandbox') };
+      return { found: true, iframe: true, sandbox: frame.getAttribute('sandbox'), controls: block.querySelectorAll('.playable-bar .btn, .playable-bar a').length };
     `);
     check('iframe playable embedded', iframe.iframe, JSON.stringify(iframe).slice(0, 300));
     check('iframe is sandboxed', /allow-scripts/.test(iframe.sandbox || ''), String(iframe.sandbox));
+    check('playable bar offers open/fullscreen', iframe.controls >= 2, String(iframe.controls));
     await cdp.shot('05-iframe');
 
-    // ── theme toggle + search + sort ─────────────────────────────────────────
+    // ── theme toggle, search, sort ──────────────────────────────────────────
     const ui = await cdp.eval(`
+      location.hash = '#/';
+      await new Promise(r => setTimeout(r, 500));
       const before = document.documentElement.dataset.theme;
       document.querySelector('#themeBtn').click();
       const after = document.documentElement.dataset.theme;
       document.querySelector('#themeBtn').click();
       const restored = document.documentElement.dataset.theme;
+
       const search = document.querySelector('#search');
       search.value = 'deepseek';
       search.dispatchEvent(new Event('input', { bubbles: true }));
       await new Promise(r => setTimeout(r, 400));
-      const filtered = document.querySelectorAll('#grid .card').length;
+      const filtered = document.querySelectorAll('#runs .run-row').length;
+      const counter = document.querySelector('#meta').textContent;
       search.value = '';
       search.dispatchEvent(new Event('input', { bubbles: true }));
       await new Promise(r => setTimeout(r, 400));
+
       const sort = document.querySelector('#sort');
       sort.value = 'title-asc';
       sort.dispatchEvent(new Event('change', { bubbles: true }));
       await new Promise(r => setTimeout(r, 300));
-      const first = document.querySelector('#grid .card .card-title')?.textContent;
+      const first = document.querySelector('#runs .run-row .run-title')?.textContent;
       sort.value = 'date-desc';
       sort.dispatchEvent(new Event('change', { bubbles: true }));
       await new Promise(r => setTimeout(r, 300));
-      return { before, after, restored, filtered, first };
+
+      const chip = document.querySelector('#filters .chip');
+      const chipText = chip.textContent.replace(/\\d+$/, '');
+      chip.click();
+      await new Promise(r => setTimeout(r, 300));
+      const afterChip = document.querySelectorAll('#runs .run-row').length;
+      // chips are re-rendered on click, so re-query rather than trusting the old node
+      const pressed = [...document.querySelectorAll('#filters .chip')]
+        .some(c => c.getAttribute('aria-pressed') === 'true' && c.textContent.replace(/\\d+$/, '') === chipText);
+      document.querySelector('.chip-clear').click();
+      await new Promise(r => setTimeout(r, 300));
+      return { before, after, restored, filtered, counter, first, afterChip, pressed, restored_rows: document.querySelectorAll('#runs .run-row').length };
     `);
     check('theme toggle switches theme', ui.after !== ui.before && ui.restored === ui.before, `${ui.before} → ${ui.after} → ${ui.restored}`);
-    check('search narrows the grid to 1', ui.filtered === 1, `got ${ui.filtered}`);
+    check('search narrows the list to 1', ui.filtered === 1, `got ${ui.filtered}`);
+    check('narrowed counter reports the match', /^1 of \d+ runs?$/.test(ui.counter), ui.counter);
     check('sort changes ordering', typeof ui.first === 'string' && ui.first.length > 0, String(ui.first));
+    check('filter chip narrows and clears', ui.pressed === true && ui.afterChip < index.rows && ui.restored_rows === index.rows, JSON.stringify(ui));
+    await cdp.shot('06-light-index');
+
+    // ── lightbox ────────────────────────────────────────────────────────────
+    const lightbox = await cdp.eval(`
+      const img = document.querySelector('.media-block img');
+      if (!img) return { skipped: true };
+      location.hash = '#/run/' + encodeURIComponent(${JSON.stringify(runId)});
+      await new Promise(r => setTimeout(r, 700));
+      img.click();
+      await new Promise(r => setTimeout(r, 300));
+      const open = !document.querySelector('#lightbox').hidden;
+      document.querySelector('#lightbox').click();
+      return { open, closed: document.querySelector('#lightbox').hidden };
+    `);
+    if (lightbox.skipped) check('lightbox opens and closes', true);
+    else check('lightbox opens and closes', lightbox.open && lightbox.closed, JSON.stringify(lightbox));
 
     // ── mobile layout ───────────────────────────────────────────────────────
+    await cdp.eval(`location.hash = '#/'; return 1;`);
     await cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-    await sleep(600);
-    await cdp.shot('06-mobile');
+    await sleep(700);
+    await cdp.shot('07-mobile-index');
     const mobile = await cdp.eval(`
-      const grid = document.querySelector('#grid');
-      return { columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length, overflow: document.documentElement.scrollWidth <= window.innerWidth + 1 };
+      return {
+        overflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
+        sideHidden: getComputedStyle(document.querySelector('.run-side')).display === 'none',
+        mainWidth: document.querySelector('.run-main').getBoundingClientRect().width,
+      };
     `);
-    check('single column on mobile', mobile.columns === 1, `${mobile.columns} columns`);
-    check('no horizontal overflow', mobile.overflow, 'page scrolls sideways');
+    check('no horizontal overflow on mobile', mobile.overflow, 'page scrolls sideways');
+    check('date column dropped on mobile', mobile.sideHidden, JSON.stringify(mobile));
+    check('row body keeps usable width', mobile.mainWidth > 250, String(mobile.mainWidth));
 
     // ── dark theme via system preference ────────────────────────────────────
     await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
@@ -351,19 +366,15 @@ async function main() {
     const dark = await cdp.eval(`
       return {
         theme: document.documentElement.dataset.theme,
-        bg: getComputedStyle(document.body).backgroundColor,
-        cards: document.querySelectorAll('#grid .card').length,
+        rows: document.querySelectorAll('#runs .run-row').length,
       };
     `);
     check('system dark preference respected', dark.theme === 'dark', JSON.stringify(dark));
-    check('grid still rendered after reload', dark.cards >= 3, JSON.stringify(dark));
+    check('list still rendered after reload', dark.rows >= 3, JSON.stringify(dark));
+    await cdp.shot('08-dark-index');
     await cdp.eval(`location.hash = '#/run/' + encodeURIComponent(${JSON.stringify(runId)}); return 1;`);
     await sleep(1200);
-    await cdp.eval(`document.querySelector('.detail-inner').scrollTop = 320; return 1;`);
-    await cdp.shot('07-dark-detail');
-    await cdp.eval(`location.hash = '#/'; return 1;`);
-    await sleep(700);
-    await cdp.shot('08-dark-grid');
+    await cdp.shot('09-dark-run');
 
     const problems = cdp.consoleProblems();
     check('no console errors or warnings', problems.length === 0, problems.slice(0, 5).join(' || '));
@@ -373,7 +384,6 @@ async function main() {
     console.log(`  screenshots: ${path.relative(process.cwd(), OUT_DIR)}/`);
     if (failed.length) process.exitCode = 1;
   } finally {
-    if (/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/.test(URL_BASE)) await unpublishSmokeRun().catch(() => {});
     try { cdp?.ws.close(); } catch { /* ignore */ }
     if (!KEEP) proc.kill();
     if (!KEEP) await fsp.rm(profile, { recursive: true, force: true }).catch(() => {});

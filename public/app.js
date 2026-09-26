@@ -1,7 +1,7 @@
 /* ============================================================================
-   Bench Runs — Precision Viewer & Telemetry Dashboard
+   Bench Runs — viewer.
    Reads data/results.json (generated from public/results/<id>/run.json) and
-   renders cards, telemetry tables, charts, galleries and interactive media.
+   renders a list of runs plus one page per run.
    ========================================================================== */
 
 const CFG = Object.freeze({
@@ -9,16 +9,13 @@ const CFG = Object.freeze({
   subtitle: '',
   manifest: 'data/results.json',
   repoUrl: '',
-  pollSeconds: 30,
-  showJson: true,
   ...(window.BENCH_CONFIG || {}),
 });
 
-const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const CHART_COLORS = ['#6ea8fe', '#4ade80', '#fbbf24', '#f87171', '#c084fc', '#22d3ee'];
 
 /* ── DOM helpers ──────────────────────────────────────────────────────────── */
 const $ = (sel, root = document) => root.querySelector(sel);
-const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 function h(tag, props = {}, ...kids) {
   const node = document.createElement(tag);
@@ -27,7 +24,6 @@ function h(tag, props = {}, ...kids) {
     if (key === 'class') node.className = value;
     else if (key === 'text') node.textContent = value;
     else if (key === 'html') node.innerHTML = value;
-    else if (key === 'dataset') Object.assign(node.dataset, value);
     else if (key === 'style') setStyles(node, value);
     else if (key.startsWith('on') && typeof value === 'function') {
       node.addEventListener(key.slice(2).toLowerCase(), value);
@@ -35,7 +31,10 @@ function h(tag, props = {}, ...kids) {
       node.setAttribute(key, value === true ? '' : String(value));
     }
   }
-  add(node, kids);
+  for (const kid of kids.flat(6)) {
+    if (kid === null || kid === undefined || kid === false || kid === true) continue;
+    node.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
   return node;
 }
 
@@ -56,13 +55,6 @@ const svgEl = (tag, props = {}) => {
   return node;
 };
 
-function add(parent, kids) {
-  for (const kid of kids.flat(6)) {
-    if (kid === null || kid === undefined || kid === false || kid === true) continue;
-    parent.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
-  }
-}
-
 const clear = (node) => { while (node.firstChild) node.removeChild(node.firstChild); return node; };
 
 /* ── formatting ───────────────────────────────────────────────────────────── */
@@ -77,6 +69,8 @@ function fmtNumber(raw, unit = '') {
   else text = num.toPrecision(3).replace(/0+$/, '').replace(/\.$/, '');
   return text;
 }
+
+const fmtMetric = (m) => fmtNumber(m.value, m.unit) + (m.unit === '%' ? '%' : m.unit ? ' ' + m.unit : '');
 
 function fmtBytes(bytes) {
   if (!bytes) return '';
@@ -94,6 +88,14 @@ function fmtDate(iso) {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+function fmtDuration(seconds) {
+  const n = Number(seconds);
+  if (!Number.isFinite(n)) return null;
+  if (n < 60) return `${Math.round(n)}s`;
+  if (n < 3600) return `${Math.round(n / 60)}m`;
+  return `${(n / 3600).toFixed(1)}h`;
+}
+
 function fmtRelative(iso) {
   if (!iso) return '';
   const diff = Date.now() - Date.parse(iso);
@@ -104,8 +106,6 @@ function fmtRelative(iso) {
   if (m < 60) return `${m}m ago`;
   const hr = Math.round(m / 60);
   if (hr < 24) return `${hr}h ago`;
-  const d = Math.round(hr / 24);
-  if (d < 31) return `${d}d ago`;
   return fmtDate(iso);
 }
 
@@ -138,7 +138,6 @@ function md(source, base = '') {
       (_, label, href, title) => `<a href="${link(href)}" target="_blank" rel="noopener noreferrer"${title ? ` title="${esc(title)}"` : ''}>${label}</a>`);
     t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     t = t.replace(/(^|[\s(\W])\*([^*\n]+)\*/g, '$1<em>$2</em>');
-    t = t.replace(/(^|[\s(\W])_([^_\n]+)_/g, '$1<em>$2</em>');
     t = t.replace(/~~([^~]+)~~/g, '<del>$1</del>');
     t = t.replace(/\u0000(\d+)\u0000/g, (_, n) => `<code>${codes[Number(n)]}</code>`);
     return t;
@@ -153,20 +152,17 @@ function md(source, base = '') {
 
     if (/^\s*$/.test(line)) { i++; continue; }
 
-    // code block
     const fence = line.match(/^(\s*)(```|~~~)(\w*)/);
     if (fence) {
       const tag = fence[2];
-      const lang = fence[3];
       i++;
       const codeLines = [];
       while (i < lines.length && !lines[i].startsWith(fence[1] + tag)) codeLines.push(lines[i++]);
       i++;
-      out.push(`<pre><code class="lang-${esc(lang)}">${esc(codeLines.join('\n'))}</code></pre>`);
+      out.push(`<pre><code>${esc(codeLines.join('\n'))}</code></pre>`);
       continue;
     }
 
-    // headings
     const hMatch = line.match(/^(#{1,6})\s+(.*)$/);
     if (hMatch) {
       const level = hMatch[1].length;
@@ -175,7 +171,6 @@ function md(source, base = '') {
       continue;
     }
 
-    // blockquote
     if (/^\s*>/.test(line)) {
       const quotes = [];
       while (i < lines.length && /^\s*>/.test(lines[i])) quotes.push(lines[i++].replace(/^\s*>\s?/, ''));
@@ -183,14 +178,8 @@ function md(source, base = '') {
       continue;
     }
 
-    // hr
-    if (/^\s*([-*_]\s*){3,}$/.test(line)) {
-      out.push('<hr>');
-      i++;
-      continue;
-    }
+    if (/^\s*([-*_]\s*){3,}$/.test(line)) { out.push('<hr>'); i++; continue; }
 
-    // lists
     if (/^\s*([-*+]|\d+[.)])\s+/.test(line)) {
       const ordered = /^\s*\d+[.)]\s+/.test(line);
       const items = [];
@@ -204,7 +193,6 @@ function md(source, base = '') {
       continue;
     }
 
-    // paragraph
     const para = [];
     while (
       i < lines.length && !/^\s*$/.test(lines[i]) &&
@@ -219,11 +207,9 @@ function md(source, base = '') {
 /* ── charts ───────────────────────────────────────────────────────────────── */
 function niceTicks(min, max, count = 4) {
   if (min === max) { min -= 1; max += 1; }
-  const span = max - min;
-  const step = Math.pow(10, Math.floor(Math.log10(span / count)));
-  const err = (span / count) / step;
-  const mult = err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1;
-  const s = step * mult;
+  const step = Math.pow(10, Math.floor(Math.log10((max - min) / count)));
+  const err = ((max - min) / count) / step;
+  const s = step * (err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1);
   const lo = Math.floor(min / s) * s;
   const hi = Math.ceil(max / s) * s;
   const ticks = [];
@@ -233,16 +219,16 @@ function niceTicks(min, max, count = 4) {
 
 function renderChart(spec) {
   const W = 560;
-  const H = 250;
-  const pad = { top: 16, right: 14, bottom: 40, left: 46 };
+  const H = 240;
+  const pad = { top: 14, right: 12, bottom: 34, left: 42 };
   const type = spec.type === 'bar' ? 'bar' : 'line';
   const x = (spec.x ?? []).map((v) => String(v));
   const series = (spec.series ?? []).filter((s) => s && Array.isArray(s.values));
   const all = series.flatMap((s) => s.values).map(Number).filter(Number.isFinite);
   if (!series.length || !all.length) return null;
 
-  const dataMin = spec.yMin !== undefined && spec.yMin !== null ? Number(spec.yMin) : Math.min(...all);
-  const dataMax = spec.yMax !== undefined && spec.yMax !== null ? Number(spec.yMax) : Math.max(...all);
+  const dataMin = spec.yMin ?? Math.min(...all);
+  const dataMax = spec.yMax ?? Math.max(...all);
   const ticks = niceTicks(dataMin, dataMax, spec.ticks ?? 4);
   const yMin = ticks[0];
   const yMax = ticks[ticks.length - 1];
@@ -252,33 +238,30 @@ function renderChart(spec) {
   const points = Math.max(x.length, 1);
   const sx = (idx) => pad.left + (points === 1 ? plotW / 2 : (idx / (points - 1)) * plotW);
   const sy = (v) => pad.top + plotH - ((Number(v) - yMin) / (yMax - yMin || 1)) * plotH;
+  const color = (i) => series[i].color || CHART_COLORS[i % CHART_COLORS.length];
 
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': spec.title || 'chart' });
 
   for (const tick of ticks) {
     svg.append(svgEl('line', { class: 'grid-line', x1: pad.left, x2: W - pad.right, y1: sy(tick), y2: sy(tick) }));
-    const tickLabel = svgEl('text', { class: 'axis-text', x: pad.left - 8, y: sy(tick) + 3.5, 'text-anchor': 'end' });
-    tickLabel.textContent = fmtNumber(tick);
-    svg.append(tickLabel);
+    const label = svgEl('text', { class: 'axis-text', x: pad.left - 7, y: sy(tick) + 3.5, 'text-anchor': 'end' });
+    label.textContent = fmtNumber(tick);
+    svg.append(label);
   }
 
-  const labelStep = Math.ceil(x.length / Math.max(2, Math.floor(plotW / 68)));
+  const step = Math.ceil(x.length / Math.max(2, Math.floor(plotW / 68)));
   x.forEach((label, idx) => {
-    if (x.length > 8 && idx % labelStep !== 0 && idx !== x.length - 1) return;
-    const text = svgEl('text', {
-      class: 'axis-text', x: sx(idx), y: H - pad.bottom + 18, 'text-anchor': 'middle',
-    });
+    if (x.length > 8 && idx % step !== 0 && idx !== x.length - 1) return;
+    const text = svgEl('text', { class: 'axis-text', x: sx(idx), y: H - pad.bottom + 16, 'text-anchor': 'middle' });
     text.textContent = label.length > 12 ? label.slice(0, 11) + '…' : label;
     svg.append(text);
   });
 
   if (spec.yLabel) {
-    const label = svgEl('text', { class: 'axis-text', x: pad.left - 4, y: pad.top - 5, 'text-anchor': 'start' });
+    const label = svgEl('text', { class: 'axis-text', x: pad.left - 2, y: pad.top - 3, 'text-anchor': 'start' });
     label.textContent = spec.yLabel;
     svg.append(label);
   }
-
-  const color = (idx) => series[idx].color || CHART_COLORS[idx % CHART_COLORS.length];
 
   if (type === 'bar') {
     const slot = plotW / points;
@@ -291,213 +274,85 @@ function renderChart(spec) {
         const yPos = sy(Math.max(v, yMin));
         svg.append(svgEl('rect', {
           x: xPos, y: yPos, width: barW, height: Math.max(1, sy(yMin) - yPos),
-          rx: Math.min(3, barW / 2), fill: color(si), opacity: 0.92,
+          rx: Math.min(3, barW / 2), fill: color(si),
         }));
       });
     });
   } else {
     series.forEach((s, si) => {
-      const coords = s.values
-        .map((value, idx) => [sx(idx), sy(value), value])
-        .filter(([, , value]) => Number.isFinite(Number(value)));
+      const coords = s.values.map((value, idx) => [sx(idx), sy(value)]).filter(([, py]) => Number.isFinite(py));
       if (coords.length > 1) {
         svg.append(svgEl('polyline', {
           points: coords.map(([px, py]) => `${px},${py}`).join(' '),
           fill: 'none', stroke: color(si), 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
         }));
       }
-      coords.forEach(([px, py, value], idx) => {
-        const dot = svgEl('circle', { cx: px, cy: py, r: coords.length > 26 ? 1.8 : 3.2, fill: color(si) });
-        const tip = svgEl('title');
-        tip.textContent = `${x[idx] ?? ''}: ${fmtNumber(value)}`;
-        dot.append(tip);
-        svg.append(dot);
-      });
+      coords.forEach(([px, py]) => svg.append(svgEl('circle', { cx: px, cy: py, r: coords.length > 26 ? 1.8 : 3, fill: color(si) })));
     });
   }
 
-  const node = h('div', { class: 'chart' },
+  return h('div', { class: 'chart' },
     spec.title ? h('h4', { text: spec.title }) : null,
     spec.subtitle ? h('div', { class: 'chart-sub', text: spec.subtitle }) : null,
     svg,
     series.length > 1
-      ? h('div', { class: 'legend' }, series.map((s, si) => h('span', {},
-        h('i', { style: { background: color(si) } }), s.name || `series ${si + 1}`)))
+      ? h('div', { class: 'legend' }, series.map((s, si) => h('span', {}, h('i', { style: { background: color(si) } }), s.name || `series ${si + 1}`)))
       : null,
   );
-  return node;
 }
 
 /* ── state ────────────────────────────────────────────────────────────────── */
-const LS = {
-  get(key, fallback) {
-    try { const raw = localStorage.getItem(key); return raw === null ? fallback : JSON.parse(raw); }
-    catch { return fallback; }
-  },
-  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ } },
-};
-
 const state = {
   runs: [],
   filtered: [],
   query: '',
-  filters: { benchmark: new Set(), model: new Set(), tag: new Set() },
-  sort: LS.get('bench.sort', 'date-desc'),
-  view: LS.get('bench.view', 'grid'),
-  seen: new Set(LS.get('bench.seen', [])),
-  newIds: new Set(),
-  signature: null,
+  filters: { model: new Set(), tag: new Set() },
+  sort: localStorage.getItem('bench.sort') || 'date-desc',
   generatedAt: null,
-  loading: true,
   error: null,
-  openId: null,
 };
 
-/* ── live status + notifications ──────────────────────────────────────────── */
-let pollTimer = null;
-
-function setLive(kind, text) {
-  const node = $('#live');
-  node.classList.remove('is-ok', 'is-busy', 'is-error');
-  if (kind) node.classList.add(`is-${kind}`);
-  $('#liveText').textContent = text;
-}
-
-function toast(message, ms = 4200) {
-  const node = $('#toast');
-  node.textContent = message;
-  node.hidden = false;
-  requestAnimationFrame(() => node.classList.add('is-visible'));
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => {
-    node.classList.remove('is-visible');
-    setTimeout(() => { node.hidden = true; }, 260);
-  }, ms);
-}
-
-function showNotice(message, isError = false) {
-  const node = $('#notice');
-  if (!message) { node.hidden = true; return; }
-  clear(node);
-  node.className = 'notice' + (isError ? ' is-error' : '');
-  add(node, [h('span', { text: message })]);
-  node.hidden = false;
-}
-
-/* ── load + polling ───────────────────────────────────────────────────────── */
-async function load({ manual = false, quiet = false } = {}) {
-  if (!quiet) setLive('busy', manual ? 'checking…' : 'loading…');
+/* ── data ─────────────────────────────────────────────────────────────────── */
+async function load() {
   try {
     const url = new URL(CFG.manifest, document.baseURI);
     url.searchParams.set('t', String(Date.now()));
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
     const data = await res.json();
-    const runs = Array.isArray(data?.runs) ? data.runs : Array.isArray(data) ? data : [];
-
-    const signature = [data?.generatedAt ?? '', runs.length, ...runs.map((r) => `${r.id}:${r._meta?.version ?? ''}`)].join('|');
-    const changed = signature !== state.signature;
-    const first = state.signature === null;
-    state.signature = signature;
-    state.generatedAt = data?.generatedAt ?? new Date().toISOString();
-    state.runs = runs;
+    state.runs = Array.isArray(data?.runs) ? data.runs : Array.isArray(data) ? data : [];
+    state.generatedAt = data?.generatedAt ?? null;
     state.error = null;
-    state.loading = false;
-
-    if (!first) {
-      const fresh = runs.filter((r) => !state.seen.has(r.id));
-      state.newIds = new Set(fresh.map((r) => r.id));
-      if (changed && fresh.length) {
-        toast(`${fresh.length} new result${fresh.length === 1 ? '' : 's'} published`);
-      } else if (changed && manual) {
-        toast('Results updated');
-      } else if (manual) {
-        toast('Already up to date');
-      }
-    }
-    for (const run of runs) state.seen.add(run.id);
-    LS.set('bench.seen', [...state.seen]);
-
-    showNotice(null);
-    if (changed || first) {
-      updateStats();
-      renderChips();
-      renderActiveView();
-    } else {
-      updateFooter();
-    }
   } catch (err) {
-    state.loading = false;
+    state.runs = [];
     state.error = err;
-    setLive('error', 'offline');
-    if (!quiet || manual) {
-      showNotice(
-        `Could not load ${CFG.manifest} (${err.message}). ` +
-        'If this is the first run, add a folder under public/results/ and run `npm run manifest`.',
-        true,
-      );
-      if (state.error && !state.signature) renderActiveView();
-    }
-    return;
   }
-
-  setLive('ok', `live · ${state.runs.length} run${state.runs.length === 1 ? '' : 's'}`);
-  updateStats();
-  updateFooter();
+  renderChips();
+  renderIndex();
+  renderFooter();
+  route();
 }
 
-function startPolling() {
-  clearInterval(pollTimer);
-  if (!CFG.pollSeconds) return;
-  pollTimer = setInterval(() => {
-    if (document.hidden || !navigator.onLine) return;
-    load({ quiet: true });
-  }, CFG.pollSeconds * 1000);
-}
-
-/* ── stats banner ─────────────────────────────────────────────────────────── */
-function updateStats() {
-  const runs = state.runs;
-  $('#statRuns').textContent = runs.length ? String(runs.length) : '0';
-
-  const models = new Set(runs.map((r) => r.model).filter(Boolean));
-  $('#statModels').textContent = models.size ? String(models.size) : '0';
-
-  let totalAcc = 0;
-  let accCount = 0;
-  for (const r of runs) {
-    const accMetric = (r.metrics ?? []).find((m) => /acc|score|pass|success|completion/i.test(m.label));
-    if (accMetric && Number.isFinite(Number(accMetric.value))) {
-      let val = Number(accMetric.value);
-      if (val <= 1 && accMetric.unit === '%') val *= 100;
-      else if (val <= 1) val *= 100;
-      totalAcc += val;
-      accCount++;
-    }
-  }
-  $('#statSuccess').textContent = accCount > 0 ? `${Math.round(totalAcc / accCount)}%` : '—';
-
-  const sortedDates = runs
-    .map((r) => r.date)
-    .filter(Boolean)
-    .sort((a, b) => Date.parse(b) - Date.parse(a));
-  $('#statLatest').textContent = sortedDates.length ? fmtDate(sortedDates[0]) : '—';
+function renderFooter() {
+  const parts = [state.runs.length ? `${state.runs.length} run${state.runs.length === 1 ? '' : 's'}` : 'no runs'];
+  const models = new Set(state.runs.map((r) => r.model).filter(Boolean));
+  if (models.size) parts.push(`${models.size} model${models.size === 1 ? '' : 's'}`);
+  if (state.generatedAt) parts.push(`updated ${fmtRelative(state.generatedAt)}`);
+  $('#footerMeta').textContent = parts.join(' · ');
 }
 
 /* ── filtering & sorting ─────────────────────────────────────────────────── */
 const searchable = (run) => [
   run.id, run.title, run.model, run.benchmark, run.summary,
   ...(run.tags ?? []),
-  ...Object.values(run.environment ?? {}),
-  run.notes ?? '',
+  ...Object.entries(run.environment ?? {}).map(([k, v]) => `${k} ${v}`),
 ].join(' ').toLowerCase();
 
 function applyFilters() {
   const tokens = state.query.toLowerCase().split(/\s+/).filter(Boolean);
-  const { benchmark, model, tag } = state.filters;
+  const { model, tag } = state.filters;
 
   state.filtered = state.runs.filter((run) => {
-    if (benchmark.size && !benchmark.has(run.benchmark)) return false;
     if (model.size && !model.has(run.model)) return false;
     if (tag.size && !(run.tags ?? []).some((t) => tag.has(t))) return false;
     if (tokens.length) {
@@ -507,290 +362,256 @@ function applyFilters() {
     return true;
   });
 
-  const metricValue = (run, pattern) => {
-    const metric = (run.metrics ?? []).find((m) => pattern.test(m.label));
-    const value = Number(metric?.value);
-    return Number.isFinite(value) ? value : -Infinity;
-  };
-
+  const byDate = (a, b) => Date.parse(b.date ?? 0) - Date.parse(a.date ?? 0);
   const sorters = {
-    'date-desc': (a, b) => (Date.parse(b.date ?? 0) || 0) - (Date.parse(a.date ?? 0) || 0) || a.title.localeCompare(b.title),
-    'date-asc': (a, b) => (Date.parse(a.date ?? 0) || 0) - (Date.parse(b.date ?? 0) || 0) || a.title.localeCompare(b.title),
+    'date-desc': (a, b) => byDate(a, b) || a.title.localeCompare(b.title),
+    'date-asc': (a, b) => -byDate(a, b) || a.title.localeCompare(b.title),
     'title-asc': (a, b) => a.title.localeCompare(b.title),
     'model-asc': (a, b) => (a.model || '~').localeCompare(b.model || '~') || a.title.localeCompare(b.title),
-    'accuracy-desc': (a, b) =>
-      metricValue(b, /acc|score|pass|success|f1|exact|completion/i) - metricValue(a, /acc|score|pass|success|f1|exact|completion/i) ||
-      (Date.parse(b.date ?? 0) || 0) - (Date.parse(a.date ?? 0) || 0),
   };
   state.filtered.sort(sorters[state.sort] ?? sorters['date-desc']);
 }
 
-function groupedValues(key) {
-  const counts = new Map();
-  for (const run of state.runs) {
-    const values = key === 'tag' ? (run.tags ?? []) : [run[key] ?? ''];
-    for (const value of values) {
-      if (!value) continue;
-      counts.set(value, (counts.get(value) ?? 0) + 1);
+function renderChips() {
+  const host = clear($('#filters'));
+
+  for (const key of ['model', 'tag']) {
+    const values = [...new Set(state.runs.flatMap((r) => (key === 'tag' ? (r.tags ?? []) : [r.model])).filter(Boolean))];
+    if (!values.length) continue;
+    if (key === 'model' && values.length < 2) continue;
+
+    for (const value of values.sort()) {
+      const count = state.runs.filter((r) => (key === 'tag' ? (r.tags ?? []) : [r.model]).includes(value)).length;
+      host.append(h('button', {
+        type: 'button',
+        class: 'chip',
+        'aria-pressed': state.filters[key].has(value) ? 'true' : 'false',
+        onclick: () => {
+          const set = state.filters[key];
+          set.has(value) ? set.delete(value) : set.add(value);
+          renderChips();
+          renderIndex();
+        },
+      }, h('span', { class: 'chip-text', text: key === 'tag' ? '#' + value : value }), count > 1 ? h('span', { class: 'chip-count', text: String(count) }) : null));
     }
   }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-}
 
-function renderChips() {
-  const host = $('#filters');
-  clear(host);
-
-  const groups = [
-    { key: 'model', label: 'Model', mono: true },
-    { key: 'tag', label: 'Tag' },
-  ];
-
-  for (const group of groups) {
-    const entries = groupedValues(group.key);
-    if (entries.length <= 1 && group.key !== 'tag') continue;
-    if (!entries.length) continue;
-
-    const chips = entries.map(([value, count]) => h('button', {
-      type: 'button',
-      class: 'chip',
-      'aria-pressed': state.filters[group.key].has(value) ? 'true' : 'false',
-      title: `${count} run${count === 1 ? '' : 's'}`,
-      onclick: () => {
-        const set = state.filters[group.key];
-        set.has(value) ? set.delete(value) : set.add(value);
-        renderChips();
-        renderActiveView();
-      },
-    }, h('span', { text: value, style: group.mono ? { fontFamily: 'var(--mono)', fontSize: '11px' } : null }),
-      h('span', { class: 'chip-count', text: String(count) })));
-
-    host.append(h('div', { class: 'chip-group' }, h('span', { class: 'chip-label', text: group.label }), chips));
-  }
-
-  const anyActive = Object.values(state.filters).some((s) => s.size);
-  if (anyActive) {
+  if (state.filters.model.size || state.filters.tag.size) {
     host.append(h('button', {
-      type: 'button', class: 'chip chip-clear', onclick: () => {
-        for (const set of Object.values(state.filters)) set.clear();
-        state.query = '';
-        $('#search').value = '';
-        $('#searchClear').hidden = true;
+      type: 'button', class: 'chip chip-clear',
+      onclick: () => {
+        state.filters.model.clear();
+        state.filters.tag.clear();
         renderChips();
-        renderActiveView();
+        renderIndex();
       },
-    }, 'Clear all'));
+    }, 'clear'));
   }
 }
 
-/* ── media helpers ────────────────────────────────────────────────────────── */
-function cardThumb(run) {
-  const version = run._meta?.version;
-  const preview = run._meta?.preview;
-  if (preview && !run.media?.find((m) => m.src === preview)?.missing) {
-    return h('img', {
-      src: bust(preview, version), alt: '', loading: 'lazy', decoding: 'async',
-      onerror: (event) => { event.currentTarget.replaceWith(fallbackThumb(run)); },
-    });
+/* ── index ────────────────────────────────────────────────────────────────── */
+const HEADLINE = /acc|score|pass|success|completion|rate|quality/i;
+const SKIP_ROW = /^(reasoning_blocks|tool_errors)$/;
+
+/** The few numbers worth showing on a list row: turns, duration, a headline score. */
+function rowMetrics(run) {
+  const metrics = run.metrics ?? [];
+  const turns = metrics.find((m) => m.label === 'turns');
+  const duration = metrics.find((m) => m.label === 'duration');
+  const score = metrics.find((m) => HEADLINE.test(m.label));
+  const out = [];
+  if (turns && Number.isFinite(Number(turns.value))) out.push(h('span', {}, h('b', { text: String(turns.value) }), ' turns'));
+  const mins = duration ? fmtDuration(duration.value) : null;
+  if (mins) out.push(h('span', { text: mins }));
+  if (score && score !== duration) out.push(h('span', { text: fmtMetric(score) }));
+  if (!out.length) {
+    for (const m of metrics.filter((m) => !SKIP_ROW.test(m.label)).slice(0, 3)) {
+      out.push(h('span', { text: fmtMetric(m) }));
+    }
   }
-  return htmlThumb(run) ?? fallbackThumb(run);
+  return out;
 }
 
-const fallbackThumb = (run) => h('div', { class: 'card-thumb-fallback' }, h('span', { text: initials(run.model || run.benchmark || run.title) }));
-
-function htmlThumb(run) {
-  const item = (run.media ?? []).find((m) =>
-    m.type === 'playable' && !m.missing && !m.remote &&
-    typeof m.src === 'string' &&
-    !/^(https?:)?\/\//i.test(m.src) && !m.src.startsWith('data:') &&
-    m.src.toLowerCase().split('?')[0].endsWith('.html'));
-  if (!item) return null;
-  return h('div', { class: 'card-thumb-stack' },
-    fallbackThumb(run),
-    h('iframe', {
-      src: bust(item.src, run._meta?.version), title: '', tabindex: '-1',
-      'aria-hidden': 'true', loading: 'lazy', scrolling: 'no', sandbox: '',
-      onload: (event) => { event.currentTarget.previousSibling?.remove(); },
-    }),
-  );
-}
-
-function inferMediaTag(run) {
-  const playable = (run.media ?? []).find((m) => m.type === 'playable');
-  if (playable) {
-    if (playable.kind === 'wasm' || (typeof playable.src === 'string' && playable.src.endsWith('.wasm'))) return 'WASM';
-    if (run.title?.toLowerCase().includes('three') || run.benchmark?.toLowerCase().includes('three')) return '3D WEBGL';
-    return 'INTERACTIVE';
+function thumbNode(run) {
+  const src = run._meta?.preview;
+  const missing = run.media?.find((m) => m.src === src)?.missing;
+  if (src && !missing) {
+    return h('div', { class: 'run-thumb' },
+      h('img', {
+        src: bust(src, run._meta?.version), alt: '', loading: 'lazy', decoding: 'async',
+        onerror: (event) => { event.currentTarget.replaceWith(h('div', { class: 'run-thumb-fallback', text: initials(run.model || run.title) })); },
+      }));
   }
-  if ((run.media ?? []).some((m) => m.type === 'video')) return 'VIDEO';
-  if ((run.media ?? []).some((m) => m.type === 'image')) return 'SCREENSHOT';
-  return null;
+  return h('div', { class: 'run-thumb' }, h('div', { class: 'run-thumb-fallback', text: initials(run.model || run.title) }));
 }
 
-/* ── render: card ─────────────────────────────────────────────────────────── */
-function renderCard(run) {
-  const metrics = (run.metrics ?? []).slice(0, 3);
-  const mediaTag = inferMediaTag(run);
+function renderIndex() {
+  const list = clear($('#runs'));
+  const notice = $('#notice');
 
-  const card = h('a', {
-    class: 'card',
-    href: `#/run/${encodeURIComponent(run.id)}`,
-    dataset: { id: run.id },
-    'aria-label': `${run.title} — details`,
-  },
-    h('div', { class: 'card-thumb' },
-      cardThumb(run),
-      h('div', { class: 'card-overlays' },
-        mediaTag ? h('span', { class: 'badge', text: mediaTag }) : null,
-        state.newIds.has(run.id) ? h('span', { class: 'badge badge-new', text: 'NEW' }) : null,
-      ),
-    ),
-    h('div', { class: 'card-body' },
-      h('div', { class: 'card-header-line' },
-        run.model ? h('span', { class: 'card-model-pill', text: run.model }) : null,
-        h('span', { class: 'card-date', text: fmtDate(run.date) }),
-      ),
-      h('h3', { class: 'card-title', text: run.title }),
-      run.benchmark ? h('div', { class: 'card-benchmark', text: run.benchmark }) : null,
-      run.summary ? h('p', { class: 'card-summary', text: run.summary }) : null,
-      (run.tags ?? []).length
-        ? h('div', { class: 'card-tags' }, run.tags.slice(0, 4).map((tag) => h('span', { class: 'tag', text: tag })))
-        : null,
-      metrics.length
-        ? h('div', { class: 'card-metrics' }, metrics.map((metric) =>
-          h('div', { class: 'card-metric' },
-            h('b', { text: fmtNumber(metric.value, metric.unit) + (metric.unit ? (metric.unit === '%' ? '%' : ' ' + metric.unit) : '') }),
-            h('span', { text: metric.label }))))
-        : null,
-    ),
-  );
-  return card;
-}
-
-/* ── render: table row ────────────────────────────────────────────────────── */
-function renderTableRow(run) {
-  const version = run._meta?.version;
-  const preview = run._meta?.preview;
-
-  let thumbNode;
-  if (preview && !run.media?.find((m) => m.src === preview)?.missing) {
-    thumbNode = h('img', { src: bust(preview, version), alt: '', loading: 'lazy' });
-  } else {
-    thumbNode = h('div', { class: 'fallback-mini', text: initials(run.model || run.title) });
-  }
-
-  const primaryMetric = (run.metrics ?? [])[0];
-  const metricText = primaryMetric
-    ? fmtNumber(primaryMetric.value, primaryMetric.unit) + (primaryMetric.unit ? (primaryMetric.unit === '%' ? '%' : ' ' + primaryMetric.unit) : '')
-    : '—';
-
-  const turnsMetric = (run.metrics ?? []).find((m) => m.label === 'turns');
-  const callsMetric = (run.metrics ?? []).find((m) => m.label === 'tool_calls');
-  const durationMetric = (run.metrics ?? []).find((m) => m.label === 'duration');
-
-  const tr = h('tr', {
-    onclick: () => { location.hash = `#/run/${encodeURIComponent(run.id)}`; },
-  },
-    h('td', {}, h('div', { class: 'table-thumb-cell' }, thumbNode)),
-    h('td', { class: 'table-title-cell' },
-      h('strong', { text: run.title }),
-      h('small', { text: run.benchmark || '—' }),
-    ),
-    h('td', {}, h('span', { class: 'card-model-pill', text: run.model || '—' })),
-    h('td', {},
-      primaryMetric
-        ? h('div', {},
-          h('span', { class: 'table-metric-val', text: metricText }),
-          h('div', { style: { fontSize: '10px', color: 'var(--faint)' }, text: primaryMetric.label }))
-        : h('span', { text: '—' })),
-    h('td', { style: { fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--muted)' } },
-      `${turnsMetric?.value ?? '—'} / ${callsMetric?.value ?? '—'}`),
-    h('td', { style: { fontFamily: 'var(--mono)', fontSize: '12px' } },
-      durationMetric ? `${durationMetric.value}s` : '—'),
-    h('td', { style: { fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--faint)' } }, fmtDate(run.date)),
-    h('td', {}, h('span', { class: 'btn btn-ghost', style: { padding: '4px 8px', fontSize: '11.5px' }, text: 'Inspect →' })),
-  );
-  return tr;
-}
-
-/* ── render: views ────────────────────────────────────────────────────────── */
-function renderSkeletons(n = 6) {
-  const grid = clear($('#grid'));
-  for (let i = 0; i < n; i++) {
-    grid.append(h('div', { class: 'skeleton' },
-      h('div', { class: 'sk-thumb' }),
-      h('div', { class: 'sk-line w60' }),
-      h('div', { class: 'sk-line w40' }),
-    ));
-  }
-}
-
-function renderActiveView() {
-  const grid = $('#grid');
-  const tableSection = $('#tableView');
-  const tableBody = $('#tableBody');
-
-  if (state.loading) {
-    renderSkeletons();
+  if (state.error) {
+    notice.hidden = false;
+    notice.textContent = `Could not load ${CFG.manifest} (${state.error.message}).`;
+    $('#empty').hidden = true;
+    $('#meta').textContent = '';
     return;
   }
 
+  notice.hidden = true;
   applyFilters();
-  clear(grid);
-  clear(tableBody);
 
-  const hasRuns = state.filtered.length > 0;
-  $('#empty').hidden = hasRuns;
-  $('#count').textContent = `${state.filtered.length} of ${state.runs.length}`;
+  // the footer already carries the totals; only speak up when a filter narrows them
+  $('#meta').textContent = state.filtered.length !== state.runs.length
+    ? `${state.filtered.length} of ${state.runs.length} run${state.runs.length === 1 ? '' : 's'}`
+    : '';
 
-  if (!hasRuns) {
-    $('#emptyHint').textContent = state.runs.length
-      ? 'No runs match the current search terms or filter selection.'
-      : 'Add a folder under public/results/<run-id>/ with a run.json, then run `npm run manifest`.';
-  }
+  $('#empty').hidden = state.filtered.length > 0;
+  $('#emptyHint').textContent = state.runs.length
+    ? 'No runs match the current search.'
+    : `Add a folder under public/results/<run-id>/ with a run.json, then run \`npm run manifest\`.`;
 
-  if (state.view === 'table') {
-    grid.hidden = true;
-    tableSection.hidden = false;
-    const fragment = document.createDocumentFragment();
-    for (const run of state.filtered) fragment.append(renderTableRow(run));
-    tableBody.append(fragment);
-  } else {
-    tableSection.hidden = true;
-    grid.hidden = false;
-    const fragment = document.createDocumentFragment();
-    for (const run of state.filtered) fragment.append(renderCard(run));
-    grid.append(fragment);
+  for (const run of state.filtered) {
+    list.append(h('li', {},
+      h('a', { class: 'run-row', href: `#/run/${encodeURIComponent(run.id)}` },
+        thumbNode(run),
+        h('div', { class: 'run-main' },
+          h('div', { class: 'run-title', text: run.title }),
+          h('div', { class: 'run-line' },
+            run.model || 'unknown model',
+            run.benchmark ? h('span', { class: 'sep', text: '·' }) : null,
+            run.benchmark || null),
+          h('div', { class: 'run-metrics' }, rowMetrics(run)),
+        ),
+        h('div', { class: 'run-side', text: fmtDate(run.date) }),
+      )));
   }
 }
 
-// Backward-compatible alias for existing callers
-function renderGrid() {
-  renderActiveView();
+/* ── run detail ───────────────────────────────────────────────────────────── */
+const isLogMedia = (item) => ['markdown', 'code', 'file'].includes(item.type);
+
+function renderDetail(run) {
+  const host = clear($('#runView'));
+  const media = run.media ?? [];
+  const artifacts = media.filter((item) => !isLogMedia(item));
+  const logs = media.filter(isLogMedia);
+  const env = Object.entries(run.environment ?? {});
+  const warnings = run._meta?.warnings ?? [];
+
+  const copyButton = h('button', {
+    type: 'button', class: 'btn',
+    onclick: async (event) => {
+      const url = `${location.origin}${location.pathname}#/run/${encodeURIComponent(run.id)}`;
+      const btn = event.currentTarget;
+      try {
+        await navigator.clipboard.writeText(url);
+        btn.textContent = 'Copied';
+      } catch {
+        btn.textContent = url;
+      }
+      setTimeout(() => { btn.textContent = 'Copy link'; }, 1800);
+    },
+  }, 'Copy link');
+
+  host.append(
+    h('a', { class: 'back', href: '#/', text: '← all runs' }),
+    h('div', { class: 'run-head' },
+      h('h1', { class: 'run-title', text: run.title }),
+      h('div', { class: 'run-sub' },
+        run.model || 'unknown model',
+        run.benchmark ? h('span', { class: 'sep', text: '·' }) : null,
+        run.benchmark || null,
+        h('span', { class: 'sep', text: '·' }),
+        fmtDate(run.date)),
+      run.summary ? h('p', { class: 'run-summary', text: run.summary }) : null,
+      h('div', { class: 'run-actions' },
+        copyButton,
+        h('a', { class: 'btn', href: `${run._meta?.base ?? ''}run.json`, target: '_blank', rel: 'noopener' }, 'run.json'),
+        CFG.repoUrl ? h('a', { class: 'btn', href: CFG.repoUrl, target: '_blank', rel: 'noopener' }, 'github') : null,
+      ),
+      (run.tags ?? []).length
+        ? h('div', { class: 'tags' }, run.tags.map((tag) => h('span', { class: 'tag', text: tag })))
+        : null,
+    ),
+  );
+
+  if (run.metrics?.length) {
+    host.append(h('section', { class: 'section' },
+      h('h2', { class: 'section-title', text: 'Metrics' }),
+      h('div', { class: 'metrics' }, run.metrics.map((m) =>
+        h('div', { class: 'metric' },
+          h('div', { class: 'metric-label', text: m.label }),
+          h('div', { class: 'metric-value' },
+            fmtNumber(m.value, m.unit),
+            m.unit ? h('span', { class: 'unit', text: m.unit === '%' ? '%' : ' ' + m.unit }) : null),
+          m.hint ? h('div', { class: 'metric-hint', text: m.hint }) : null,
+        ))),
+    ));
+  }
+
+  const charts = (run.charts ?? []).map(renderChart).filter(Boolean);
+  if (charts.length) {
+    host.append(h('section', { class: 'section' },
+      h('h2', { class: 'section-title', text: 'Charts' }),
+      h('div', { class: 'gallery' }, charts)));
+  }
+
+  if (artifacts.length) {
+    host.append(h('section', { class: 'section' },
+      h('h2', { class: 'section-title', text: 'Artifacts' }),
+      h('div', { class: 'gallery' }, artifacts.map((item, i) => renderMedia(run, item, i)))));
+  }
+
+  if (env.length || warnings.length || run.notes || logs.length) {
+    const content = h('div', { class: 'disclosure-content' });
+
+    if (warnings.length) {
+      content.append(h('div', { class: 'notice' }, warnings.join(' · ')));
+    }
+    if (env.length) {
+      content.append(h('dl', { class: 'kv' }, env.flatMap(([key, value]) => [
+        h('dt', { text: key.replace(/_/g, ' ') }),
+        h('dd', { text: Array.isArray(value) ? value.join(', ') : String(value) }),
+      ])));
+    }
+    if (run.notes) {
+      content.append(h('div', { class: 'prose', html: md(run.notes, run._meta?.base ?? '') }));
+    }
+    if (logs.length) {
+      content.append(h('div', { class: 'gallery' }, logs.map((item, i) => renderMedia(run, item, artifacts.length + i))));
+    }
+
+    host.append(h('section', { class: 'section' },
+      h('details', { class: 'disclosure' },
+        h('summary', { text: `Prompt, transcript, environment${env.length ? ' & notes' : ''}` }),
+        content)));
+  }
+
+  if (run.links?.length) {
+    host.append(h('section', { class: 'section' },
+      h('h2', { class: 'section-title', text: 'Links' }),
+      h('div', { class: 'links-list' }, run.links.map((link) =>
+        h('a', { class: 'btn', href: link.href, target: '_blank', rel: 'noopener' }, link.label)))));
+  }
 }
 
-/* ── media renderer ───────────────────────────────────────────────────────── */
-function caption(run, item, index) {
+/* ── media ────────────────────────────────────────────────────────────────── */
+function caption(item, index) {
   if (!item.caption) return null;
   return h('figcaption', { class: 'media-caption' },
     h('span', { class: 'cap-index', text: String(index + 1).padStart(2, '0') }),
-    h('span', {}, item.caption),
-  );
+    h('span', { text: item.caption }));
 }
 
 function openLightbox(src, alt) {
-  const box = $('#lightbox');
-  const img = $('#lightboxImg');
-  img.src = src;
-  img.alt = alt || '';
-  box.hidden = false;
-  document.body.style.overflow = 'hidden';
+  $('#lightboxImg').src = src;
+  $('#lightboxImg').alt = alt || '';
+  $('#lightbox').hidden = false;
 }
 
 function closeLightbox() {
   $('#lightbox').hidden = true;
   $('#lightboxImg').src = '';
-  document.body.style.overflow = '';
 }
 
 const PLAYABLE_SANDBOX = 'allow-scripts allow-same-origin allow-pointer-lock allow-popups allow-forms allow-modals allow-downloads allow-orientation-lock';
@@ -804,15 +625,17 @@ function embedUrl(src) {
   return src;
 }
 
+const missingBlock = (what, src) => h('div', { class: 'media-missing' }, `${what} missing — ${src}`);
+
 function renderImage(run, item, index) {
   const src = bust(item.src, run._meta?.version);
-  const img = h('img', {
-    src, alt: item.alt || item.caption || `${run.title} image ${index + 1}`,
-    decoding: 'async', onclick: () => openLightbox(src, item.alt || item.caption || ''),
-  });
-  return h('figure', { class: 'media-block' + (item.wide ? ' wide' : '') },
-    item.missing ? h('div', { class: 'media-missing' }, h('div', { text: '⚠ file missing' }), h('div', { text: item.src })) : h('div', { class: 'media-frame' }, img),
-    caption(run, item, index));
+  const body = item.missing
+    ? missingBlock('image', item.src)
+    : h('div', { class: 'media-frame' }, h('img', {
+        src, alt: item.alt || item.caption || `${run.title} image ${index + 1}`, decoding: 'async',
+        onclick: () => openLightbox(src, item.alt || item.caption || ''),
+      }));
+  return h('figure', { class: 'media-block' }, body, caption(item, index));
 }
 
 function renderVideo(run, item, index) {
@@ -823,12 +646,11 @@ function renderVideo(run, item, index) {
   if (isEmbed) {
     frame = h('iframe', {
       src: embedUrl(item.src), title: item.caption || `${run.title} video`,
-      loading: 'lazy', allowfullscreen: true,
+      loading: 'lazy', allowfullscreen: true, style: { aspectRatio: item.aspect || '16 / 9', width: '100%' },
       allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen',
-      style: { aspectRatio: item.aspect || '16 / 9', width: '100%' },
     });
   } else if (item.missing) {
-    frame = h('div', { class: 'media-missing' }, h('div', { text: '⚠ video missing' }), h('div', { text: item.src }));
+    frame = missingBlock('video', item.src);
   } else {
     const sources = Array.isArray(item.sources) && item.sources.length ? item.sources : [{ src: item.src }];
     frame = h('video', {
@@ -837,74 +659,54 @@ function renderVideo(run, item, index) {
       loop: item.loop === true, muted: item.muted === true, autoplay: item.autoplay === true,
     }, sources.map((source) => h('source', { src: bust(source.src, version), type: source.type || null })));
   }
-
-  return h('figure', { class: 'media-block' + (item.wide ? ' wide' : '') }, frame, caption(run, item, index));
+  return h('figure', { class: 'media-block' }, frame, caption(item, index));
 }
 
 function renderPlayable(run, item, index) {
   const version = run._meta?.version;
   const host = h('div', { class: 'playable-host', style: { '--pa': item.aspect || '16 / 9' } });
-  const bar = h('div', { class: 'playable-bar' },
-    h('span', { text: item.kind === 'wasm' ? 'WebAssembly module' : 'Interactive sandbox build' }),
-    h('span', { class: 'spacer' }),
-  );
-
+  const bar = h('div', { class: 'playable-bar' }, h('span', { class: 'spacer' }));
   const launch = h('button', {
     type: 'button', class: 'playable-launch', style: { '--pa': item.aspect || '16 / 9' },
-    'aria-label': `Load ${item.caption || 'interactive demo'}`,
-    onclick: () => start(),
+    onclick: () => (item.kind === 'wasm' ? startWasm() : startIframe()),
   },
-    h('span', { class: 'play-icon' },
-      h('span', { html: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>' })),
-    h('span', { class: 'playable-meta', text: item.caption ? `Click to launch — ${item.caption}` : 'Click to launch interactive build' }),
-  );
+    h('span', { class: 'play-icon', html: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>' }),
+    h('span', { class: 'playable-meta', text: item.caption || 'play' }));
 
-  const block = h('figure', { class: 'media-block' + (item.wide ? ' wide' : '') }, launch, bar, caption(run, item, index));
+  const block = h('figure', { class: 'media-block' }, launch, bar, caption(item, index));
 
-  function start() {
-    if (item.kind === 'wasm') startWasm();
-    else startIframe();
-  }
+  function swap(node) { launch.replaceWith(node); }
 
   function startIframe() {
     if (item.missing) {
-      host.innerHTML = '';
-      host.append(h('div', { class: 'playable-error', text: `⚠ build missing: ${item.src}` }));
-      launch.replaceWith(host);
+      host.append(missingBlock('build', item.src));
+      swap(host);
       return;
     }
     const iframe = h('iframe', {
-      src: bust(item.src, version),
-      title: item.caption || `${run.title} interactive demo`,
+      src: bust(item.src, version), title: item.caption || `${run.title} interactive demo`,
       sandbox: item.sandbox === false ? null : PLAYABLE_SANDBOX,
       allow: 'fullscreen; autoplay; gamepad; xr-spatial-tracking; clipboard-write',
       allowfullscreen: true,
-      loading: 'eager',
     });
-    launch.replaceWith(host);
     host.append(iframe);
-    iframe.addEventListener('error', () => { host.dataset.blocked = '1'; });
-    bar.prepend(h('button', {
-      type: 'button', class: 'btn btn-ghost',
-      onclick: () => { host.querySelector('iframe')?.requestFullscreen?.(); },
-    }, 'Fullscreen'));
-    const open = h('a', { class: 'btn btn-ghost', href: bust(item.src, version), target: '_blank', rel: 'noopener' }, 'Open in new tab');
-    bar.append(open);
+    swap(host);
+    bar.prepend(
+      h('span', { text: item.kind === 'wasm' ? 'wasm' : 'interactive' }),
+      h('button', { type: 'button', class: 'btn', onclick: () => iframe.requestFullscreen?.() }, 'fullscreen'),
+      h('a', { class: 'btn', href: bust(item.src, version), target: '_blank', rel: 'noopener' }, 'open ↗'),
+    );
   }
 
   async function startWasm() {
-    launch.replaceWith(host);
+    swap(host);
     try {
       const glueUrl = item.glue || new URL('wasm-loader.js', document.baseURI).href;
       const mod = await import(/* @vite-ignore */ glueUrl);
       const mount = mod.default ?? mod.mount ?? mod.init;
       if (typeof mount !== 'function') throw new Error('loader module must export default(mountEl, options)');
-      await mount(host, {
-        wasmUrl: bust(item.wasm || item.src, version),
-        run,
-        item,
-      });
-      bar.prepend(h('span', { class: 'playable-meta', text: 'active' }));
+      await mount(host, { wasmUrl: bust(item.wasm || item.src, version), run, item });
+      bar.prepend(h('span', { text: 'wasm · active' }));
     } catch (err) {
       host.append(h('div', { class: 'playable-error', text: `Could not start WebAssembly: ${err.message}` }));
       console.error('[bench] wasm playable failed', err);
@@ -914,307 +716,93 @@ function renderPlayable(run, item, index) {
   return block;
 }
 
-function renderAudio(run, item, index) {
-  return h('figure', { class: 'media-block' + (item.wide ? ' wide' : '') },
-    h('div', { class: 'media-frame', style: { padding: '12px' } },
-      h('audio', { controls: true, preload: 'metadata', style: { width: '100%' } },
-        h('source', { src: bust(item.src, run._meta?.version) }))),
-    caption(run, item, index));
-}
-
-function renderTable(run, item, index) {
-  const columns = item.columns ?? [];
-  const rows = item.rows ?? [];
-  return h('figure', { class: 'media-block wide' },
-    h('div', { class: 'table-wrap' },
-      h('table', {},
-        h('thead', {}, h('tr', {}, columns.map((c) => h('th', { text: String(c) })))),
-        h('tbody', {}, rows.map((row) => h('tr', {}, row.map((cell) => h('td', { text: String(cell) }))))),
-      )),
-    caption(run, item, index),
-  );
-}
-
 function renderTextBlock(run, item, index) {
   const isMarkdown = item.type === 'markdown';
-  const body = h('div', {
-    class: 'prose',
-    style: { padding: isMarkdown ? '16px 18px' : '14px 16px' },
-  });
-
+  const body = h('div', { class: 'prose' });
   const paint = (text) => {
     clear(body);
-    if (isMarkdown) {
-      body.innerHTML = md(text, run._meta?.base ?? '');
-    } else {
-      body.append(h('pre', { style: { margin: '0' } }, h('code', { text })));
-    }
+    if (isMarkdown) body.innerHTML = md(text, run._meta?.base ?? '');
+    else body.append(h('pre', {}, h('code', { text })));
   };
 
   if (typeof item.text === 'string') {
     paint(item.text);
   } else if (item.src && !item.missing) {
     body.append(h('div', { class: 'media-loading', text: 'loading…' }));
-    const url = bust(item.src, run._meta?.version);
-    fetch(url, { cache: 'no-cache' })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.text();
-      })
-      .then((text) => {
-        if (body.isConnected) paint(text);
-      })
-      .catch((err) => {
-        clear(body);
-        body.append(h('div', { class: 'media-missing', text: `⚠ could not load ${item.src} (${err.message})` }));
-      });
+    fetch(bust(item.src, run._meta?.version), { cache: 'no-cache' })
+      .then((res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.text(); })
+      .then((text) => { if (body.isConnected) paint(text); })
+      .catch((err) => { clear(body); body.append(missingBlock('text', `${item.src} (${err.message})`)); });
   } else {
-    body.append(h('div', { class: 'media-missing', text: '⚠ no content' }));
+    body.append(missingBlock('text', item.src || '(no content)'));
   }
 
-  return h('figure', { class: 'media-block wide' }, body, caption(run, item, index));
+  return h('figure', { class: 'media-block' }, body, caption(item, index));
+}
+
+function renderTable(item, index) {
+  return h('figure', { class: 'media-block' },
+    h('div', { class: 'table-wrap' },
+      h('table', {},
+        h('thead', {}, h('tr', {}, (item.columns ?? []).map((c) => h('th', { text: String(c) })))),
+        h('tbody', {}, (item.rows ?? []).map((row) => h('tr', {}, row.map((cell) => h('td', { text: String(cell) }))))))),
+    caption(item, index));
 }
 
 function renderFile(run, item, index) {
   return h('figure', { class: 'media-block' },
-    h('div', { style: { padding: '14px' } },
-      h('div', { class: 'links-list' },
-        h('a', { class: 'btn', href: item.missing ? null : bust(item.src, run._meta?.version), target: '_blank', rel: 'noopener' },
-          h('span', { text: `⤓ ${item.label || item.caption || item.src.split('/').pop()}` }),
-          item.bytes ? h('span', { class: 'chip-count', text: fmtBytes(item.bytes) }) : null),
-      )),
-    item.missing ? h('div', { class: 'media-missing', text: '⚠ file missing' }) : null,
-    caption(run, item, index),
-  );
+    h('figcaption', { class: 'media-caption' },
+      item.missing
+        ? h('span', { class: 'media-missing', text: `file missing — ${item.src}` })
+        : h('a', { href: bust(item.src, run._meta?.version), download: '', target: '_blank', rel: 'noopener' },
+            `↓ ${item.label || item.caption || item.src.split('/').pop()}`,
+            item.bytes ? h('span', { class: 'chip-count', text: ` · ${fmtBytes(item.bytes)}` }) : null),
+      item.caption ? h('span', { class: 'cap-index', text: '' }) : null));
+}
+
+function renderAudio(run, item, index) {
+  return h('figure', { class: 'media-block' },
+    h('div', { class: 'media-frame', style: { padding: '10px' } },
+      h('audio', { controls: true, preload: 'metadata', style: { width: '100%' } },
+        h('source', { src: bust(item.src, run._meta?.version) }))),
+    caption(item, index));
 }
 
 function renderMedia(run, item, index) {
   switch (item.type) {
     case 'image': return renderImage(run, item, index);
-    case 'video': return renderVideo(run, item, index);
+    case 'video':
+    case 'embed': return renderVideo(run, item, index);
     case 'playable': return renderPlayable(run, item, index);
     case 'audio': return renderAudio(run, item, index);
-    case 'embed': return renderVideo(run, { ...item, embed: true }, index);
-    case 'table': return renderTable(run, item, index);
+    case 'table': return renderTable(item, index);
     case 'markdown':
     case 'code': return renderTextBlock(run, item, index);
     default: return renderFile(run, item, index);
   }
 }
 
-/* ── render: detail modal ─────────────────────────────────────────────────── */
-const isAuditMedia = (item) => ['markdown', 'code', 'file'].includes(item.type);
-
-function renderDetail(run) {
-  const host = clear($('#detailContent'));
-  const media = run.media ?? [];
-  const primary = media.filter((item) => !isAuditMedia(item));
-  const auditMedia = media.filter(isAuditMedia);
-  const envEntries = Object.entries(run.environment ?? {});
-  const warnings = run._meta?.warnings ?? [];
-  const hasAudit = auditMedia.length > 0 || envEntries.length > 0 || run.notes || warnings.length > 0;
-
-  // Breadcrumbs
-  const breadcrumb = clear($('#detailBreadcrumb'));
-  breadcrumb.append(
-    h('a', { href: '#/', text: 'Runs' }),
-    h('span', { class: 'sep', text: '/' }),
-    h('span', { text: run.model || 'model' }),
-    h('span', { class: 'sep', text: '/' }),
-    h('span', { class: 'curr', text: run.benchmark || run.title }),
-  );
-
-  const copyLink = (label = 'Copy link') => h('button', {
-    type: 'button', class: 'btn',
-    onclick: async (event) => {
-      const url = `${location.origin}${location.pathname}#/run/${encodeURIComponent(run.id)}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        toast('Link copied to clipboard');
-      } catch { toast(url); }
-      event.currentTarget.blur();
-    },
-  },
-    h('span', { html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' }),
-    label);
-
-  const heroBlock = h('div', { class: 'detail-hero' },
-    h('div', { class: 'detail-sub' },
-      h('span', { class: 'card-model-pill', text: run.model || 'model' }),
-      run.benchmark ? h('span', { class: 'dot', text: '·' }) : null,
-      run.benchmark ? h('span', { text: run.benchmark }) : null,
-      h('span', { class: 'dot', text: '·' }),
-      h('span', { text: fmtDate(run.date) }),
-    ),
-    h('h2', { class: 'detail-title', text: run.title }),
-    run.summary ? h('div', { class: 'detail-summary-card', text: run.summary }) : null,
-    (run.tags ?? []).length
-      ? h('div', { class: 'detail-tags' }, run.tags.map((tag) => h('span', { class: 'tag', text: tag })))
-      : null,
-    h('div', { class: 'detail-actions' },
-      copyLink(),
-      CFG.showJson
-        ? h('a', { class: 'btn btn-ghost', href: `${run._meta?.base ?? ''}run.json`, target: '_blank', rel: 'noopener' }, 'View run.json')
-        : null,
-      h('button', {
-        type: 'button', class: 'btn btn-ghost',
-        onclick: async () => {
-          try {
-            await navigator.clipboard.writeText(JSON.stringify(run, null, 2));
-            toast('Run JSON copied');
-          } catch { toast('Clipboard unavailable'); }
-        },
-      }, 'Copy JSON'),
-      CFG.repoUrl ? h('a', { class: 'btn btn-ghost', href: CFG.repoUrl, target: '_blank', rel: 'noopener' }, 'GitHub') : null,
-    ),
-  );
-
-  const body = h('div', { class: 'detail-body' }, heroBlock);
-
-  // Metrics Section
-  if (run.metrics?.length) {
-    body.append(h('div', { class: 'section' },
-      h('div', { class: 'section-header' },
-        h('h3', { text: 'Telemetry Metrics' }),
-      ),
-      h('div', { class: 'tiles' }, run.metrics.map((metric) =>
-        h('div', { class: 'tile' },
-          h('div', { class: 'tile-label', text: metric.label }),
-          h('div', { class: 'tile-value' },
-            h('span', { text: fmtNumber(metric.value, metric.unit) }),
-            metric.unit && metric.unit !== '%' ? h('span', { class: 'tile-unit', text: metric.unit })
-              : metric.unit === '%' ? h('span', { class: 'tile-unit', text: '%' }) : null),
-          metric.hint ? h('div', { class: 'tile-hint', text: metric.hint }) : null,
-          metric.better ? h('div', { class: 'tile-better', text: `↑ higher is ${metric.better}` }) : null,
-        )))));
-  }
-
-  // Charts
-  const charts = (run.charts ?? []).map(renderChart).filter(Boolean);
-  if (charts.length) {
-    body.append(h('div', { class: 'section' },
-      h('div', { class: 'section-header' }, h('h3', { text: 'Performance Charts' })),
-      h('div', { class: 'charts' }, charts)));
-  }
-
-  // Primary Visuals / Artifacts
-  if (primary.length) {
-    body.append(h('div', { class: 'section' },
-      h('div', { class: 'section-header' }, h('h3', { text: 'Artifacts & Execution Output' })),
-      h('div', { class: 'gallery' }, primary.map((item, index) => renderMedia(run, item, index)))));
-  }
-
-  // Audit Trail & Reproducibility
-  if (hasAudit) {
-    const summaryHeader = h('summary', {},
-      h('span', { class: 'audit-title' },
-        h('span', { html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>' }),
-        h('span', { text: 'Audit Trail & Reproducibility Spec' })),
-      h('span', { class: 'audit-hint', text: 'Prompt · Transcript · Hardware · Environment' }),
-    );
-
-    const auditContent = h('div', { class: 'audit-content' });
-
-    if (warnings.length) {
-      auditContent.append(h('div', {},
-        h('div', { class: 'notice' }, h('div', {}, warnings.map((w) => h('div', { text: `⚠ ${w}` }))))));
-    }
-
-    if (envEntries.length) {
-      auditContent.append(h('div', {},
-        h('h4', { style: { fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', color: 'var(--faint)', marginBottom: '8px' }, text: 'Environment Specification' }),
-        h('dl', { class: 'kv' }, envEntries.flatMap(([key, value]) => [
-          h('dt', { text: key.replace(/_/g, ' ') }),
-          h('dd', { text: Array.isArray(value) ? value.join(', ') : String(value) }),
-        ]))));
-    }
-
-    if (run.notes) {
-      auditContent.append(h('div', {},
-        h('h4', { style: { fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', color: 'var(--faint)', marginBottom: '8px' }, text: 'Notes & Observations' }),
-        h('div', { class: 'prose', html: md(run.notes, run._meta?.base ?? '') })));
-    }
-
-    if (auditMedia.length) {
-      auditContent.append(h('div', {},
-        h('h4', { style: { fontFamily: 'var(--mono)', fontSize: '11px', textTransform: 'uppercase', color: 'var(--faint)', marginBottom: '8px' }, text: `Run Logs & Transcripts (${auditMedia.length})` }),
-        h('div', { class: 'gallery' }, auditMedia.map((item, index) => renderMedia(run, item, primary.length + index)))));
-    }
-
-    const trail = h('details', { class: 'audit', open: primary.length === 0 || undefined },
-      summaryHeader, auditContent);
-    body.append(trail);
-  }
-
-  if (run.links?.length) {
-    body.append(h('div', { class: 'section' },
-      h('div', { class: 'section-header' }, h('h3', { text: 'External Links' })),
-      h('div', { class: 'links-list' }, run.links.map((link) =>
-        h('a', { class: 'btn', href: link.href, target: '_blank', rel: 'noopener' }, link.label)))));
-  }
-
-  host.append(body);
-  return host;
-}
-
 /* ── routing ──────────────────────────────────────────────────────────────── */
-const dialog = $('#detail');
-
-function openDetail(id) {
-  const run = state.runs.find((r) => r.id === id || r._meta?.dir === id);
-  if (!run) {
-    if (!state.loading) toast(`No run named "${id}"`);
-    return;
-  }
-  state.openId = run.id;
-  renderDetail(run);
-  if (!dialog.open) dialog.showModal();
-  dialog.scrollTop = 0;
-  $('.detail-inner', dialog).scrollTop = 0;
-  document.title = `${run.title} · ${CFG.title}`;
-}
-
-function closeDetail() {
-  state.openId = null;
-  if (dialog.open) dialog.close();
-  document.title = CFG.title;
-}
-
 function route() {
   const match = location.hash.match(/^#\/run\/(.+)$/);
-  if (match) openDetail(decodeURIComponent(match[1]));
-  else closeDetail();
+  const run = match && state.runs.find((r) => r.id === decodeURIComponent(match[1]));
+
+  if (run) {
+    $('#indexView').hidden = true;
+    $('#runView').hidden = false;
+    renderDetail(run);
+    document.title = `${run.title} · ${CFG.title}`;
+  } else {
+    if (match) history.replaceState(null, '', location.pathname + location.search + '#/');
+    $('#indexView').hidden = false;
+    $('#runView').hidden = true;
+    renderIndex();
+    document.title = CFG.title;
+  }
+  window.scrollTo(0, 0);
 }
 
-dialog.addEventListener('close', () => {
-  state.openId = null;
-  document.title = CFG.title;
-  if (location.hash.startsWith('#/run/')) history.replaceState(null, '', location.pathname + location.search + '#/');
-});
-
-$('#closeBtn').addEventListener('click', () => { location.hash = '#/'; });
-$('#lightboxClose').addEventListener('click', closeLightbox);
-$('#lightbox').addEventListener('click', (event) => { if (event.target.id === 'lightbox') closeLightbox(); });
-
-/* ── view toggle & controls ───────────────────────────────────────────────── */
-function setView(viewMode) {
-  state.view = viewMode;
-  LS.set('bench.view', viewMode);
-  $('#viewGridBtn').classList.toggle('is-active', viewMode === 'grid');
-  $('#viewGridBtn').setAttribute('aria-pressed', viewMode === 'grid' ? 'true' : 'false');
-  $('#viewTableBtn').classList.toggle('is-active', viewMode === 'table');
-  $('#viewTableBtn').setAttribute('aria-pressed', viewMode === 'table' ? 'true' : 'false');
-  renderActiveView();
-}
-
-$('#viewGridBtn').addEventListener('click', () => setView('grid'));
-$('#viewTableBtn').addEventListener('click', () => setView('table'));
-
-function updateFooter() {
-  const updated = state.generatedAt ? fmtRelative(state.generatedAt) : '—';
-  $('#footerMeta').textContent = `${state.runs.length} run${state.runs.length === 1 ? '' : 's'} recorded · manifest synchronized ${updated}`;
-}
-
+/* ── controls ─────────────────────────────────────────────────────────────── */
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
   try { localStorage.setItem('bench.theme', theme); } catch { /* ignore */ }
@@ -1223,20 +811,17 @@ function setTheme(theme) {
 $('#themeBtn').addEventListener('click', () => {
   setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 });
-$('#refreshBtn').addEventListener('click', () => load({ manual: true }));
-$('#topBtn').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 let searchTimer = null;
 const searchInput = $('#search');
 const searchClear = $('#searchClear');
 
 searchInput.addEventListener('input', (event) => {
-  const value = event.target.value;
-  searchClear.hidden = !value;
+  searchClear.hidden = !event.target.value;
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
-    state.query = value;
-    renderActiveView();
+    state.query = event.target.value;
+    renderIndex();
   }, 120);
 });
 
@@ -1244,51 +829,40 @@ searchClear.addEventListener('click', () => {
   searchInput.value = '';
   searchClear.hidden = true;
   state.query = '';
-  renderActiveView();
+  renderIndex();
   searchInput.focus();
 });
 
-$('#sort').value = state.sort;
-$('#sort').addEventListener('change', (event) => {
+const sortSelect = $('#sort');
+if (![...sortSelect.options].some((o) => o.value === state.sort)) state.sort = 'date-desc';
+sortSelect.value = state.sort;
+sortSelect.addEventListener('change', (event) => {
   state.sort = event.target.value;
-  LS.set('bench.sort', state.sort);
-  renderActiveView();
+  try { localStorage.setItem('bench.sort', state.sort); } catch { /* ignore */ }
+  renderIndex();
 });
 
+$('#lightboxClose').addEventListener('click', closeLightbox);
+$('#lightbox').addEventListener('click', (event) => { if (event.target.id === 'lightbox') closeLightbox(); });
+
 document.addEventListener('keydown', (event) => {
-  const typing = /^(input|textarea|select)$/i.test(event.target.tagName) || event.target.isContentEditable;
   if (event.key === 'Escape' && !$('#lightbox').hidden) { closeLightbox(); return; }
-  if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
-  if (event.key === '/') { event.preventDefault(); $('#search').focus(); }
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  if (/^(input|textarea|select)$/i.test(event.target.tagName) || event.target.isContentEditable) return;
+  if (event.key === '/') { event.preventDefault(); searchInput.focus(); }
   else if (event.key.toLowerCase() === 't') { $('#themeBtn').click(); }
-  else if (event.key.toLowerCase() === 'r') { load({ manual: true }); }
 });
 
 window.addEventListener('hashchange', route);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) load({ quiet: true }); });
-window.addEventListener('online', () => load({ quiet: true }));
-window.addEventListener('offline', () => setLive('error', 'offline'));
 
 /* ── boot ─────────────────────────────────────────────────────────────────── */
 (function boot() {
-  $('#siteTitle').textContent = CFG.title;
-  if (CFG.subtitle) $('#siteSubtitle').textContent = CFG.subtitle;
   document.title = CFG.title;
+  $('#siteTitle').textContent = CFG.title;
   document.querySelector('meta[name="description"]')?.setAttribute('content', CFG.subtitle || CFG.title);
-
   if (CFG.repoUrl) {
-    const btn = $('#repoBtn');
-    btn.hidden = false;
-    btn.href = CFG.repoUrl;
+    $('#repoBtn').hidden = false;
+    $('#repoBtn').href = CFG.repoUrl;
   }
-
-  // Initialize view mode from storage
-  setView(state.view);
-
-  renderChips();
-  renderSkeletons();
   load();
-  startPolling();
-  setInterval(updateFooter, 20000);
-  route();
 })();

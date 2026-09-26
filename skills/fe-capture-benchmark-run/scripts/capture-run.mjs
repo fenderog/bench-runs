@@ -48,7 +48,7 @@ if (!flag('from') && !positional.length) {
   --benchmark <name>     benchmark the run belongs to
   --tags a,b             comma separated tags
   --date YYYY-MM-DD      defaults to the run's own timestamp
-  --summary "…"          two sentences for the card
+  --summary "…"          two sentences for the run page
   --metrics <file.json>  graded metrics (merged over the derived counters)
   --media <file.json>    extra media entries to append
   --notes-file <file>    prose for notes.md

@@ -5,7 +5,8 @@ and the published page picks it up on its own — no rebuild step to remember, n
 database, no tracker.
 
 Each run can carry **metrics**, **charts**, **images**, **video**, **CSV tables**,
-**markdown notes** and **playable demos** (WebAssembly or a self-contained HTML build).
+**markdown notes** and **playable demos** (WebAssembly or a self-contained HTML
+build). Everything except the title is optional.
 
 ```
 public/results/<run-id>/
@@ -14,7 +15,11 @@ public/results/<run-id>/
 └── media/            ← images, video, .wasm modules, playable builds
 ```
 
-![card grid](.screenshots/grid-light.png)
+![run list](.screenshots/index-light.png)
+
+The index is a plain list of runs — thumbnail, model, a few headline numbers,
+date. A run opens as its own page at `#/run/<id>`: summary, metrics, charts,
+artifacts, and a collapsed *prompt, transcript, environment & notes* section.
 
 ---
 
@@ -50,16 +55,15 @@ npm run dev
 git add -A && git commit -m "results: qwen3-14b math" && git push
 ```
 
-GitHub Actions rebuilds the manifest and redeploys Pages. Open tabs notice within
-`pollSeconds` (default 30 s) without a reload, show a *“1 new result published”*
-toast and badge the new cards **NEW**.
+GitHub Actions rebuilds the manifest and redeploys Pages. Reload the page and
+the new run is there — there is nothing to click and nothing to wait for.
 
-### How the live update works
+### How an update reaches the page
 
 | Layer | Mechanism |
 | --- | --- |
 | On push | `.github/workflows/publish.yml` runs `build-manifest.mjs`, rebuilds `results.json`, deploys `public/` to Pages |
-| Open page | Polls `data/results.json` every `pollSeconds`, and immediately on tab focus, on `online`, and when you press <kbd>R</kbd> |
+| On load | The page fetches `data/results.json` once and renders it; there is no polling and no background traffic |
 | Cache busting | The manifest is fetched with a unique query string; media URLs carry a per-run content hash (`?v=…`) so re-uploaded assets never come back stale |
 
 Pages caches edge responses for ~10 minutes, but because the page requests
@@ -81,7 +85,7 @@ Only `title` really matters — everything else is optional.
   "benchmark": "GSM8K",
   "date": "2026-06-21T10:12:00Z",     // falls back to a YYYY-MM-DD folder prefix
   "tags": ["reasoning", "math"],
-  "summary": "One or two sentences shown on the card.",
+  "summary": "One or two sentences shown at the top of the run page.",
 
   // ── numbers, rendered as tiles ─────────────────────────────────────────
   "metrics": {
@@ -275,13 +279,12 @@ Edit the `window.BENCH_CONFIG` block near the top of `public/index.html`:
 | --- | --- | --- |
 | `title` / `subtitle` | `Bench Runs` | Header branding |
 | `manifest` | `data/results.json` | Manifest location |
-| `repoUrl` | `''` | Adds a **GitHub** button to the header |
-| `pollSeconds` | `30` | Auto-refresh interval; `0` disables polling |
-| `showJson` | `true` | Per-run `run.json` button |
+| `repoUrl` | `''` | Adds a **GitHub** button in the header and on every run page |
 
-Keyboard: <kbd>/</kbd> search · <kbd>T</kbd> theme · <kbd>R</kbd> refresh ·
-<kbd>Esc</kbd> close. Filter chips are OR within a group and AND across groups.
-The theme follows the system preference until you toggle it manually.
+Keyboard: <kbd>/</kbd> search · <kbd>T</kbd> theme · <kbd>Esc</kbd> close the
+lightbox. Filter chips are OR within a group and AND across groups (models are
+plain, tags are prefixed with `#`). The theme follows the system preference
+until you toggle it manually.
 
 ---
 

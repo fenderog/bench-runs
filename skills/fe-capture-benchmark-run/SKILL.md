@@ -75,7 +75,7 @@ second**: before creating anything, ask the user for the run name and tags with
 the interactive question tool (`ask_user_question`) — never invent them.
 Ask both in one go:
 
-- **Run name** — the human title for the card and folder slug. Propose your
+- **Run name** — the human title for the run page and folder slug. Propose your
   best suggestion as the recommended option (e.g. `"<model> — <task>"`);
   the user can also just type their own.
 - **Tags** — multi-select from your suggestions (task type, benchmark, topic);

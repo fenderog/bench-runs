@@ -56,7 +56,7 @@ if (run) {
   if (!run.title) error('run.json has no "title"');
   if (!run.date) error('run.json has no "date"');
   else if (Number.isNaN(Date.parse(run.date))) error(`run.json date "${run.date}" is not parseable`);
-  if (!run.summary) warn('run.json has no "summary" — the card will show only the title');
+  if (!run.summary) warn('run.json has no "summary" — the run page will show only the title');
   if (!run.model) warn('run.json has no "model" — the run cannot be compared to anything');
   if (!run.benchmark) warn('run.json has no "benchmark"');
 
